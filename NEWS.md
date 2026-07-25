@@ -1,4 +1,11 @@
-# bufferscape 0.1.0
+# bufferscape 1.0.1
+
+* Version strings in `DESCRIPTION`, `CITATION.cff` and `inst/CITATION` now match
+  the release tag; 1.0.0 was tagged while the package still declared 0.1.0.
+* Added `CITATION.cff`, so the repository exposes citation metadata to GitHub
+  and to archives such as Zenodo.
+
+# bufferscape 1.0.0
 
 First release.
 

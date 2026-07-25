@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "bufferscape: Distance-Weighted Landscape Composition in Buffers Around Point Locations"
+abstract: >-
+  Characterises the environment surrounding point locations by computing
+  land-cover composition within circular buffers directly from vector polygons,
+  without rasterisation. For each site and each class it returns the exact
+  surface area inside the buffer and a distance-decay weighted effective area in
+  which the kernel is integrated over polygon geometry rather than evaluated at
+  the polygon centroid, avoiding the large bias the centroid approximation
+  introduces for elongated features passing close to the site.
+authors:
+  - family-names: Planta
+    given-names: Michele
+    orcid: "https://orcid.org/0009-0000-3353-5368"
+    email: micheleplanta@outlook.it
+repository-code: "https://github.com/mplanta-lab/bufferscape"
+url: "https://github.com/mplanta-lab/bufferscape"
+license: MIT
+version: 1.0.1
+date-released: "2026-07-26"
+keywords:
+  - R
+  - spatial epidemiology
+  - exposure assessment
+  - land-use regression
+  - buffer analysis
+  - distance decay
+  - landscape ecology
+  - vector-borne disease
