@@ -2,6 +2,7 @@
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/mplanta-lab/bufferscape/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/mplanta-lab/bufferscape/actions/workflows/R-CMD-check.yaml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21577714.svg)](https://doi.org/10.5281/zenodo.21577714)
 <!-- badges: end -->
 
 Distance-weighted landscape composition in buffers around point locations,
@@ -132,6 +133,12 @@ example ships as `mare_categories`.
 ```r
 citation("bufferscape")
 ```
+
+Archived on Zenodo: <https://doi.org/10.5281/zenodo.21577714>
+
+That is the *concept* DOI and always resolves to the most recent version. Cite
+it unless you need to point at one specific release, in which case use the
+version DOI shown on that release's Zenodo record.
 
 ## License
 
