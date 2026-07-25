@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Landscape composition in point buffers</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Landscape composition in point buffers</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(bufferscape)</span></code></pre></div>
+<div id="the-problem" class="section level2">
+<h2>The problem</h2>
+<p>Given a set of point locations and a set of land-cover polygons, how
+much of each class lies near each point?</p>
+<p>This is the shape of a great many study designs:</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>field</th>
+<th>points</th>
+<th>classes that matter</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>air-quality exposure</td>
+<td>monitors, home addresses</td>
+<td>road surface, industry, tree cover</td>
+</tr>
+<tr class="even">
+<td>environmental epidemiology</td>
+<td>residential addresses in a cohort</td>
+<td>greenspace, water, built surface</td>
+</tr>
+<tr class="odd">
+<td>food environment</td>
+<td>schools, homes</td>
+<td>outlet types within walking distance</td>
+</tr>
+<tr class="even">
+<td>vector surveillance</td>
+<td>ovitraps, light traps, tick drags</td>
+<td>roofing, vegetation, standing water</td>
+</tr>
+<tr class="odd">
+<td>WASH</td>
+<td>water points, households</td>
+<td>sanitation infrastructure, drainage</td>
+</tr>
+<tr class="even">
+<td>landscape ecology</td>
+<td>camera traps, nest sites, quadrats</td>
+<td>habitat classes, edge, canopy</td>
+</tr>
+</tbody>
+</table>
+<p>In land-use regression the buffer-and-weight step is the model; in
+the others it produces covariates. Either way the computation is
+identical.</p>
+<p>“Near” is the hard part. A plain area-within-buffer treats a feature
+touching the point and one at the buffer edge as equivalent. Weighting
+by distance fixes that, but only if the weighting is done properly, and
+the usual shortcuts are not.</p>
+<p><code>bufferscape</code> computes, for every point and every class,
+the exact area inside a buffer and a distance-decay weighted
+<em>effective</em> area in which the kernel is integrated over polygon
+geometry.</p>
+<p>It works from <strong>vector</strong> polygons. That matters at fine
+scales: rasterising a 3 m wide alley or a 2 m water tank onto a 10 m
+grid destroys it, and the global land-cover products that operate at
+that resolution cannot represent the features these designs depend
+on.</p>
+</div>
+<div id="a-worked-example" class="section level2">
+<h2>A worked example</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>kml <span class="ot">&lt;-</span> <span class="fu">system.file</span>(<span class="st">&quot;extdata&quot;</span>, <span class="st">&quot;example_site.kml&quot;</span>, <span class="at">package =</span> <span class="st">&quot;bufferscape&quot;</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">buffer_composition</span>(kml, <span class="at">radii =</span> <span class="dv">50</span>, <span class="at">grid_res =</span> <span class="dv">5</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<p>Composition, largest first:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>d <span class="ot">&lt;-</span> res<span class="sc">$</span>long[res<span class="sc">$</span>long<span class="sc">$</span>area_m2 <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="fu">c</span>(<span class="st">&quot;label_en&quot;</span>, <span class="st">&quot;area_m2&quot;</span>, <span class="st">&quot;area_w&quot;</span>)]</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">head</span>(d[<span class="fu">order</span>(<span class="sc">-</span>d<span class="sc">$</span>area_m2), ], <span class="dv">6</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt;                     label_en  area_m2    area_w</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; 3               Mature trees 755.8604 323.71040</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; 17      Internal favela road 696.6825 376.50506</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; 28     Narrow internal alley 384.5187 211.43289</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; 12                Vacant lot 383.8599 151.55558</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; 13 Waste accumulation / dump 248.6434  94.77581</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; 4             Clay tile roof 207.0477 118.70774</span></span></code></pre></div>
+<p><code>area_m2</code> is the exact surface inside the buffer;
+<code>area_w</code> is that surface after distance weighting. Their
+ratio is how close to the trap a category sits.</p>
+<p>Point features are counted separately:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>res<span class="sc">$</span>tanks</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 1 x 6</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt;   Ovitrap_ID radius_m tank_open tank_sealed tank_total pool_count</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;         &lt;dbl&gt;     &lt;int&gt;       &lt;int&gt;      &lt;int&gt;      &lt;int&gt;</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; 1 SITE_1           50         1          20         21          1</span></span></code></pre></div>
+</div>
+<div id="why-not-weight-at-the-centroid" class="section level2">
+<h2>Why not weight at the centroid</h2>
+<p>The cheap way to weight a polygon is to measure the distance to its
+centroid. For compact features this is fine. For an elongated feature
+that passes close to the sampling point it is not: the centroid can sit
+almost on the point while most of the polygon’s area is far away, so the
+whole polygon is weighted as though it were adjacent.</p>
+<p>Both are reported, so the difference can be inspected directly:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>w <span class="ot">&lt;-</span> res<span class="sc">$</span>long[res<span class="sc">$</span>long<span class="sc">$</span>area_m2 <span class="sc">&gt;</span> <span class="dv">0</span>, ]</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>w<span class="sc">$</span>bias_pct <span class="ot">&lt;-</span> <span class="dv">100</span> <span class="sc">*</span> (w<span class="sc">$</span>area_w_centroid <span class="sc">-</span> w<span class="sc">$</span>area_w) <span class="sc">/</span> w<span class="sc">$</span>area_w</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="fu">head</span>(w[<span class="fu">order</span>(<span class="sc">-</span><span class="fu">abs</span>(w<span class="sc">$</span>bias_pct)), <span class="fu">c</span>(<span class="st">&quot;label_en&quot;</span>, <span class="st">&quot;area_m2&quot;</span>, <span class="st">&quot;bias_pct&quot;</span>)], <span class="dv">5</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt;                     label_en  area_m2  bias_pct</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; 17      Internal favela road 696.6825 39.687922</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; 28     Narrow internal alley 384.5187 34.165319</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; 12                Vacant lot 383.8599  1.999895</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; 3               Mature trees 755.8604  1.751168</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 10 Concrete slab with debris 134.6372 -1.527390</span></span></code></pre></div>
+<p>In this buffer the internal road is the worst case. Roads, drainage
+channels and alleys have exactly the geometry that breaks the centroid
+approximation, and they are usually the features of epidemiological
+interest.</p>
+</div>
+<div id="choosing-the-kernel" class="section level2">
+<h2>Choosing the kernel</h2>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">decay_kernel</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">25</span>, <span class="dv">50</span>, <span class="dv">100</span>), <span class="at">kernel =</span> <span class="st">&quot;exponential&quot;</span>, <span class="at">lambda =</span> <span class="dv">45</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">#&gt; [1] 1.0000000 0.5737534 0.3291930 0.1083680</span></span></code></pre></div>
+<p>Weights are bounded on [0, 1] and equal 1 at the sampling point, so a
+weighted area is always between zero and the true area.</p>
+<p>The default <code>lambda = 45</code> m comes from close-kin genetic
+estimates of mean <em>Aedes aegypti</em> dispersal. For another taxon,
+set it from the relevant dispersal literature. Because the choice is an
+assumption, refit across a grid and compare by AIC rather than trusting
+a single value:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>fits <span class="ot">&lt;-</span> <span class="fu">lapply</span>(<span class="fu">c</span>(<span class="dv">15</span>, <span class="dv">30</span>, <span class="dv">45</span>, <span class="dv">60</span>, <span class="dv">100</span>), <span class="cf">function</span>(L) {</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  r <span class="ot">&lt;-</span> <span class="fu">buffer_composition</span>(kml, <span class="at">radii =</span> <span class="dv">50</span>, <span class="at">lambda =</span> L, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="co"># ... build the model matrix from r$wide and fit ...</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>})</span></code></pre></div>
+</div>
+<div id="choosing-the-buffer-size" class="section level2">
+<h2>Choosing the buffer size</h2>
+<p>There is no cap on <code>radii</code>. The worked example uses 50 m
+because that is the scale at which the vector-surveillance question was
+posed, but the same call takes any radius:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># fine-scale: a few tens of metres</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="fu">buffer_composition</span>(kml, <span class="at">radii =</span> <span class="fu">c</span>(<span class="dv">20</span>, <span class="dv">30</span>, <span class="dv">40</span>, <span class="dv">50</span>))</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co"># neighbourhood scale, e.g. walkability or food environment</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="fu">buffer_composition</span>(kml, <span class="at">radii =</span> <span class="fu">c</span>(<span class="dv">100</span>, <span class="dv">250</span>, <span class="dv">500</span>))</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co"># land-use regression around an air-quality monitor</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="fu">buffer_composition</span>(kml, <span class="at">radii =</span> <span class="fu">c</span>(<span class="dv">50</span>, <span class="dv">100</span>, <span class="dv">300</span>, <span class="dv">1000</span>), <span class="at">lambda =</span> <span class="dv">300</span>)</span></code></pre></div>
+<p>Two things to keep in mind as the radius grows. Set
+<code>lambda</code> to the process you are modelling, not to the buffer:
+a kernel with <code>lambda = 45</code> inside a 1 km buffer gives almost
+all the weight to the innermost tenth, which may be right or may be a
+mistake. And <code>grid_res</code> is the integration step, so leaving
+it at 1 m over a 1 km buffer is roughly 3 million points per site; scale
+it with the radius, for instance
+<code>grid_res = radius / 50</code>.</p>
+<p>Scale bars on the figures adapt automatically.</p>
+</div>
+<div id="using-your-own-classification" class="section level2">
+<h2>Using your own classification</h2>
+<p>The 29-class schema shipped with the package is specific to informal
+settlements in Rio de Janeiro. Nothing else in the package depends on
+it.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>own <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="at">id          =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>,</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="at">category    =</span> <span class="fu">c</span>(<span class="st">&quot;water&quot;</span>, <span class="st">&quot;water&quot;</span>, <span class="st">&quot;built&quot;</span>, <span class="st">&quot;vegetation&quot;</span>),</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="at">description =</span> <span class="fu">c</span>(<span class="st">&quot;pond&quot;</span>, <span class="st">&quot;channel&quot;</span>, <span class="st">&quot;roof&quot;</span>, <span class="st">&quot;canopy&quot;</span>),</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>  <span class="at">label_en    =</span> <span class="fu">c</span>(<span class="st">&quot;Standing water&quot;</span>, <span class="st">&quot;Drainage channel&quot;</span>, <span class="st">&quot;Roof&quot;</span>, <span class="st">&quot;Tree canopy&quot;</span>),</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>  <span class="at">fill        =</span> <span class="fu">c</span>(<span class="st">&quot;#2C7FB8&quot;</span>, <span class="st">&quot;#41B6C4&quot;</span>, <span class="st">&quot;#BDBDBD&quot;</span>, <span class="st">&quot;#31A354&quot;</span>),</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>  <span class="at">pattern     =</span> <span class="fu">c</span>(<span class="st">&quot;none&quot;</span>, <span class="st">&quot;none&quot;</span>, <span class="st">&quot;none&quot;</span>, <span class="st">&quot;dots&quot;</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>)</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="fu">class_dictionary</span>(own)</span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt;   id   category description         label_en    fill pattern</span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co">#&gt; 1  1      water        pond   Standing water #2C7FB8    none</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="co">#&gt; 2  2      water     channel Drainage channel #41B6C4    none</span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="co">#&gt; 3  3      built        roof             Roof #BDBDBD    none</span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a><span class="co">#&gt; 4  4 vegetation      canopy      Tree canopy #31A354    dots</span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a><span class="co">#&gt;             full_name</span></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a><span class="co">#&gt; 1        1_water_pond</span></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="co">#&gt; 2     2_water_channel</span></span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a><span class="co">#&gt; 3        3_built_roof</span></span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a><span class="co">#&gt; 4 4_vegetation_canopy</span></span></code></pre></div>
+<p>Pass it to <code>buffer_composition(categories = own)</code> and
+every output column, map colour and legend label follows it. Validate
+first if you like:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">validate_dictionary</span>(<span class="fu">data.frame</span>(<span class="at">id =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>), <span class="at">category =</span> <span class="st">&quot;a&quot;</span>, <span class="at">description =</span> <span class="st">&quot;b&quot;</span>))</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">#&gt; Error: `id` must be unique; duplicated: 1</span></span></code></pre></div>
+<p>Only <code>id</code>, <code>category</code> and
+<code>description</code> are required. Supplying <code>fill</code> is
+strongly preferred for land cover: without it, colours are generated on
+a ramp ordered by <code>id</code> and carry no meaning.</p>
+</div>
+<div id="palettes" class="section level2">
+<h2>Palettes</h2>
+<p>Four schemes ship with the package, and the same <code>palette</code>
+argument is taken by the map and the composition chart, so a figure pair
+can be made to match.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">map_composition</span>(res, <span class="st">&quot;SITE_1&quot;</span>, <span class="at">palette =</span> <span class="st">&quot;aerial&quot;</span>)      <span class="co"># appearance-matched</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="fu">map_composition</span>(res, <span class="st">&quot;SITE_1&quot;</span>, <span class="at">palette =</span> <span class="st">&quot;colorblind&quot;</span>)  <span class="co"># colour-vision-safe</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="fu">map_composition</span>(res, <span class="st">&quot;SITE_1&quot;</span>, <span class="at">palette =</span> <span class="st">&quot;greyscale&quot;</span>)   <span class="co"># print</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">class_palette</span>(<span class="at">scheme =</span> <span class="st">&quot;colorblind&quot;</span>), <span class="dv">4</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="co">#&gt;   id    fill pattern</span></span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="co">#&gt; 1  1 #008B65    none</span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co">#&gt; 2  2 #28AD89    diag</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="co">#&gt; 3  3 #6EC8AF   cross</span></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co">#&gt; 4  4 #BB5300    none</span></span></code></pre></div>
+<p>A palette of many nominal colours cannot be made safe for
+colour-vision deficiency – the perceptual space is not large enough, and
+any such palette contains pairs that converge. The
+<code>&quot;colorblind&quot;</code> scheme therefore uses colour for the coarse
+<strong>group</strong> only, and separates members within a group by a
+lightness step and a texture, so no class depends on hue as its only
+cue. That redundancy is what makes a figure accessible, and it survives
+greyscale printing.</p>
+<p>Everything not exposed as an argument can be added afterwards,
+because the return value is an ordinary ggplot object:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="fu">map_composition</span>(res, <span class="st">&quot;SITE_1&quot;</span>, <span class="at">legend =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;My title&quot;</span>)</span></code></pre></div>
+<p>One exception: the legend is drawn as text inside the panel rather
+than as a ggplot guide, so <code>theme(legend.*)</code> has no effect on
+it. Use the <code>legend</code>, <code>top_n</code> and
+<code>title</code> arguments instead.</p>
+</div>
+<div id="overlapping-polygons" class="section level2">
+<h2>Overlapping polygons</h2>
+<p>Polygons may overlap, because real surfaces do – a tree crown over a
+roof is both. Category areas are therefore <strong>not</strong>
+constrained to sum to the buffer area, and a buffer can exceed 100%
+classified. Proportions are deliberately not computed; if you need them,
+decide your own denominator.</p>
+</div>
+<div id="a-whole-folder" class="section level2">
+<h2>A whole folder</h2>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">batch_composition</span>(<span class="st">&quot;path/to/kml/folder&quot;</span>, <span class="at">radii =</span> <span class="fu">c</span>(<span class="dv">20</span>, <span class="dv">30</span>, <span class="dv">40</span>, <span class="dv">50</span>))</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>out<span class="sc">$</span>summary</span></code></pre></div>
+<p>This writes a workbook with one modelling-ready sheet per radius, a
+map per site, a composition chart per site, and a point-feature chart
+per group. One malformed file is logged and skipped rather than stopping
+the run.</p>
+<p>The workbook can also be written on its own, with control over what
+it carries:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">write_composition_report</span>(res, <span class="st">&quot;composition.xlsx&quot;</span>,</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>                         <span class="at">radii   =</span> <span class="fu">c</span>(<span class="dv">30</span>, <span class="dv">50</span>),</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>                         <span class="at">metrics =</span> <span class="fu">c</span>(<span class="st">&quot;exact&quot;</span>, <span class="st">&quot;weighted&quot;</span>),</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>                         <span class="at">digits  =</span> <span class="dv">2</span>)</span></code></pre></div>
+<p>Carrying all four metrics for a large dictionary makes for a very
+wide sheet; dropping the centroid comparison when the methods analysis
+is not needed roughly halves it.</p>
+</div>
+<div id="point-features-and-reference-distances" class="section level2">
+<h2>Point features and reference distances</h2>
+<p>Alongside the areas, the package counts point features falling inside
+each buffer and measures straight-line distances from the site to
+reference features digitised outside it. In the worked example those are
+water containers and landmarks such as an expressway and a drainage
+channel; the patterns that recognise them are arguments, so the same
+machinery serves any point layer.</p>
+<p>Distances that were never digitised stay <code>NA</code>. They are
+not coerced to zero, which would place the site <em>at</em> the feature
+and invert the sign of its coefficient.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

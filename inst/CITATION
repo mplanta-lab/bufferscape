@@ -1,0 +1,9 @@
+bibentry(
+  bibtype  = "Manual",
+  title    = "bufferscape: Distance-Weighted Landscape Composition in Buffers Around Point Locations",
+  author   = person("Michele", "Planta",
+                    comment = c(ORCID = "0009-0000-3353-5368")),
+  year     = "2026",
+  note     = "R package version 0.1.0",
+  url      = "https://github.com/mplanta-lab/bufferscape"
+)
