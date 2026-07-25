@@ -1,0 +1,27 @@
+# R session
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.Rapp.history
+
+# build artefacts — created by devtools::check() and R CMD build
+build/
+*.Rcheck/
+*.tar.gz
+*.tgz
+*.zip
+src/*.o
+src/*.so
+src/*.dll
+
+# generated docs
+inst/doc
+doc/
+Meta/
+docs/
+pkgdown/
+
+# OS
+.DS_Store
+Thumbs.db
