@@ -16,5 +16,7 @@ utils::globalVariables(c(
   "tank_total", "pool_count", "coverage_ratio", "n_polygons", "area_exact",
   "buffer_area", "n", "type", "grp", "hex", "x", "y", "vx", "pct", "bold",
   "txt", "val", "t", "source_file", "dominant_area_m2", "kind", "open",
-  "category_col", "desc_col", "id_str", "clean_desc", "mare_categories"
+  "category_col", "desc_col", "id_str", "clean_desc", "mare_categories",
+  ".", "d", "d_nearest_m", "dominant_category", "label", "name",
+  "pct_classified", "r"
 ))

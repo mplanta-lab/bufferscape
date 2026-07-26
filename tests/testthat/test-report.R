@@ -57,3 +57,22 @@ test_that("rounding and bad input are handled", {
   expect_error(write_composition_report(res, tempfile(), radii = 999),
                "not present")
 })
+
+test_that("a basemap request does not crash the batch runner", {
+  skip_if_not(nzchar(kml()))
+  # regression: batch_composition() called a helper that had been lost in a
+  # refactor, so any run with make_maps = TRUE and a basemap failed with
+  # "could not find function basemap_ready".
+  expect_true(bufferscape:::.bs_basemap_ready("none"))
+  expect_type(bufferscape:::.bs_basemap_ready("esri"), "logical")
+
+  d <- file.path(tempdir(), "bs_basemap_test")
+  dir.create(d, showWarnings = FALSE)
+  file.copy(kml(), d, overwrite = TRUE)
+  expect_no_error(
+    suppressWarnings(suppressMessages(
+      batch_composition(d, radii = 50, grid_res = 5, basemap = "esri",
+                        make_maps = TRUE, make_charts = FALSE)))
+  )
+  unlink(d, recursive = TRUE)
+})

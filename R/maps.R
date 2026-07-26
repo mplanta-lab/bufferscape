@@ -65,6 +65,21 @@
              grp = paste0("h", cm[, ncol(cm)]), stringsAsFactors = FALSE)
 }
 
+#' Are the packages for a given basemap available?
+#'
+#' Checked before a batch run so the user is told once, up front, rather than
+#' discovering it map by map.
+#'
+#' @keywords internal
+#' @noRd
+.bs_basemap_ready <- function(basemap) {
+  if (identical(basemap, "none")) return(TRUE)
+  if (!requireNamespace("terra", quietly = TRUE)) return(FALSE)
+  if (identical(basemap, "esri"))
+    return(requireNamespace("maptiles", quietly = TRUE))
+  TRUE
+}
+
 #' Build the geometry for one texture
 #'
 #' Every texture the palette vocabulary allows is drawn here, so a pattern name

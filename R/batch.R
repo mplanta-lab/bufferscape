@@ -78,7 +78,7 @@ batch_composition <- function(kml_dir,
 
   # ---- check the basemap BEFORE drawing 50 figures -----------------------
   if (isTRUE(make_maps) && !identical(basemap, "none") &&
-      !basemap_ready(basemap)) {
+      !.bs_basemap_ready(basemap)) {
     need <- if (identical(basemap, "esri")) '"maptiles", "terra"' else '"terra"'
     message("\n", strrep("!", 74), "\n")
     message("  BASEMAP is '", basemap, "' but the packages it needs are missing.\n")

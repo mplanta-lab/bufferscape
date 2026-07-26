@@ -1,3 +1,12 @@
+# bufferscape 1.0.3
+
+* Fixed a bug in `batch_composition()`: requesting a basemap with
+  `make_maps = TRUE` failed with "could not find function basemap_ready". The
+  helper that checks whether the imagery packages are installed had been lost in
+  a refactor while its call site remained.
+* Declared the non-standard-evaluation column names used by \pkg{dplyr} and
+  \pkg{ggplot2}, so `R CMD check` no longer reports undefined globals.
+
 # bufferscape 1.0.2
 
 * Progress output from `batch_composition()` now goes through `message()` rather
