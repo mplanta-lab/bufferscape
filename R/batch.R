@@ -80,13 +80,13 @@ batch_composition <- function(kml_dir,
   if (isTRUE(make_maps) && !identical(basemap, "none") &&
       !basemap_ready(basemap)) {
     need <- if (identical(basemap, "esri")) '"maptiles", "terra"' else '"terra"'
-    cat("\n", strrep("!", 74), "\n", sep = "")
-    cat("  BASEMAP is '", basemap, "' but the packages it needs are missing.\n", sep = "")
-    cat("  Maps will be drawn WITHOUT satellite imagery.\n\n")
-    cat("  For imagery, stop now and run:\n")
-    cat("      install.packages(c(", need, "))\n\n", sep = "")
-    cat("  then Source this script again.\n")
-    cat(strrep("!", 74), "\n\n", sep = "")
+    message("\n", strrep("!", 74), "\n")
+    message("  BASEMAP is '", basemap, "' but the packages it needs are missing.\n")
+    message("  Maps will be drawn WITHOUT satellite imagery.\n\n")
+    message("  For imagery, stop now and run:\n")
+    message("      install.packages(c(", need, "))\n\n")
+    message("  then Source this script again.\n")
+    message(strrep("!", 74), "\n\n")
     basemap <- "none"
   }
 
@@ -100,7 +100,7 @@ batch_composition <- function(kml_dir,
   on.exit(close(logcon), add = TRUE)
   logmsg <- function(...) {
     line <- paste0(...)
-    cat(line, "\n", sep = ""); writeLines(line, logcon); flush(logcon)
+    message(line); writeLines(line, logcon); flush(logcon)
   }
 
   logmsg("batch_composition  ", format(Sys.time(), "%Y-%m-%d %H:%M:%S"))
@@ -118,7 +118,7 @@ batch_composition <- function(kml_dir,
   for (i in seq_along(files)) {
     f <- files[i]
     nm <- tools::file_path_sans_ext(basename(f))
-    cat(sprintf("[%d/%d] %-28s ", i, length(files), nm))
+    message(sprintf("[%d/%d] %-28s ", i, length(files), nm))
 
     r <- try(suppressWarnings(
       buffer_composition(kml = f, radii = radii, kernel = kernel, lambda = lambda,
@@ -128,7 +128,7 @@ batch_composition <- function(kml_dir,
     ), silent = TRUE)
 
     if (inherits(r, "try-error")) {
-      cat("FAILED\n")
+      message("FAILED\n")
       logmsg("[FAIL] ", nm, " : ", trimws(as.character(r)))
       failed <- c(failed, nm); next
     }
@@ -144,7 +144,7 @@ batch_composition <- function(kml_dir,
       BC[[nm]] <- r$buffer_check
 
     cov <- if (nrow(r$qc)) sprintf("%.1f%% classified", 100 * r$qc$coverage_ratio[1]) else "no polygons"
-    cat(sprintf("%3d poly | %s | %2d tanks (%d unsealed)\n",
+    message(sprintf("%3d poly | %s | %2d tanks (%d unsealed)",
                 if (nrow(r$qc)) r$qc$n_polygons[1] else 0L, cov,
                 r$tanks$tank_total[1], r$tanks$tank_open[1]))
     logmsg("[ok]   ", nm, " : traps ", paste(r$traps$Name, collapse = ","),
@@ -308,28 +308,28 @@ batch_composition <- function(kml_dir,
   if (isTRUE(make_charts)) logmsg("charts   : ", chart_dir)
   if (length(failed)) logmsg("FAILED   : ", paste(failed, collapse = ", "))
 
-  cat("\n", strrep("=", 74), "\n", sep = "")
-  cat("  traps processed : ", nrow(summary_tbl), "\n", sep = "")
-  cat("  workbook        : ", xlsx, "\n", sep = "")
-  if (isTRUE(make_maps)) cat("  maps            : ", map_dir, "\n", sep = "")
-  if (isTRUE(make_charts)) cat("  charts          : ", chart_dir, "\n", sep = "")
-  cat("  log             : ", log_path, "\n", sep = "")
+  message("\n", strrep("=", 74), "\n")
+  message("  traps processed : ", nrow(summary_tbl), "\n")
+  message("  workbook        : ", xlsx, "\n")
+  if (isTRUE(make_maps)) message("  maps            : ", map_dir, "\n")
+  if (isTRUE(make_charts)) message("  charts          : ", chart_dir, "\n")
+  message("  log             : ", log_path, "\n")
   if (length(failed))
-    cat("  FAILED          : ", paste(failed, collapse = ", "), "\n", sep = "")
+    message("  FAILED          : ", paste(failed, collapse = ", "), "\n")
   if (nrow(dup) > 0) {
-    cat("\n  DUPLICATE TRAP IDs across files - check for repeated KMLs:\n")
+    message("\n  DUPLICATE TRAP IDs across files - check for repeated KMLs:\n")
     for (i in seq_len(nrow(dup)))
-      cat(sprintf("    %-12s appears %d times\n", dup$Ovitrap_ID[i], dup$n[i]))
+      message(sprintf("    %-12s appears %d times\n", dup$Ovitrap_ID[i], dup$n[i]))
   }
   low <- summary_tbl[summary_tbl$pct_classified < 80 &
                      summary_tbl$radius_m == max(summary_tbl$radius_m), ]
   if (nrow(low) > 0) {
-    cat("\n  CHECK DIGITISING - under 80% of the buffer classified:\n")
+    message("\n  CHECK DIGITISING - under 80% of the buffer classified:\n")
     for (i in seq_len(min(nrow(low), 12)))
-      cat(sprintf("    %-12s %5.1f%%\n", low$Ovitrap_ID[i], low$pct_classified[i]))
-    if (nrow(low) > 12) cat("    ... and ", nrow(low) - 12, " more\n", sep = "")
+      message(sprintf("    %-12s %5.1f%%\n", low$Ovitrap_ID[i], low$pct_classified[i]))
+    if (nrow(low) > 12) message("    ... and ", nrow(low) - 12, " more\n")
   }
-  cat(strrep("=", 74), "\n")
+  message(strrep("=", 74), "\n")
 
   invisible(list(wide = wide, long = long, tanks = tank, distances = dist,
                  qc = qc, summary = summary_tbl, out_dir = out_dir,

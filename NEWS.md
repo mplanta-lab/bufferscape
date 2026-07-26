@@ -4,6 +4,9 @@
   the release tag; 1.0.0 was tagged while the package still declared 0.1.0.
 * Added `CITATION.cff`, so the repository exposes citation metadata to GitHub
   and to archives such as Zenodo.
+* Progress output now goes through `message()` rather than `cat()`, so a run can
+  be silenced with `suppressMessages()`. CRAN policy asks that packages not
+  write to the console in a way the user cannot suppress.
 
 # bufferscape 1.0.0
 
