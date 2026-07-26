@@ -1,7 +1,7 @@
 Package: bufferscape
 Title: Distance-Weighted Landscape Composition in Buffers Around Point
         Locations
-Version: 1.0.1
+Version: 1.0.2
 Authors@R: 
     person("Michele", "Planta",
            email = "micheleplanta@outlook.it",
