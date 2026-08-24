@@ -1,0 +1,34 @@
+{
+  "title": "bufferscape: Distance-Weighted Landscape Composition in Buffers Around Point Locations",
+  "description": "<p>Characterises the environment surrounding point locations by computing land-cover composition within circular buffers directly from vector polygons, without conversion to a raster grid. For each site and each class it returns the exact surface area inside the buffer and a distance-decay weighted effective area in which the kernel is integrated over polygon geometry rather than evaluated at the polygon centroid, avoiding the large bias the centroid approximation introduces for elongated features passing close to the site. Digitised sites are read from KML or GeoPackage files, one or many sites per file, with the format detected from the file contents.</p>",
+  "upload_type": "software",
+  "license": "MIT",
+  "creators": [
+    {
+      "name": "Planta, Michele",
+      "orcid": "0009-0000-3353-5368"
+    }
+  ],
+  "keywords": [
+    "R",
+    "spatial epidemiology",
+    "exposure assessment",
+    "land-use regression",
+    "buffer analysis",
+    "distance decay",
+    "landscape ecology",
+    "vector-borne disease"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/mplanta-lab/bufferscape",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    },
+    {
+      "identifier": "https://CRAN.R-project.org/package=bufferscape",
+      "relation": "isIdenticalTo",
+      "scheme": "url"
+    }
+  ]
+}
