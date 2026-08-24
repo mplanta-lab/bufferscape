@@ -7,9 +7,11 @@
 #' containing every table, one map per sampling site, and the composition and
 #' container charts.
 #'
-#' @param kml_dir Folder holding the KML files.
-#' @param out_dir Output folder; defaults to `Results/` inside `kml_dir`.
-#' @param pattern Regular expression selecting files.
+#' @param dir Folder holding the `.kml` and/or `.gpkg` files.
+#' @param kml_dir Deprecated name for `dir`, still accepted.
+#' @param out_dir Output folder; defaults to `Results/` inside `dir`.
+#' @param pattern Regular expression selecting files. The default takes both
+#'   `.kml` and `.gpkg`, so a folder may mix the two.
 #' @param categories A category dictionary; see [class_dictionary()].
 #' @param make_maps,make_charts Produce figures.
 #' @param palette Passed to [map_composition()]; `"aerial"` (default),
@@ -45,9 +47,9 @@
 #' out$summary
 #' }
 #' @export
-batch_composition <- function(kml_dir,
-                          out_dir     = file.path(kml_dir, "Results"),
-                          pattern    = "\\.kml$",
+batch_composition <- function(dir = NULL,
+                          out_dir     = file.path(dir, "Results"),
+                          pattern    = "\\.(kml|gpkg)$",
                           make_maps   = TRUE,
                           make_charts = TRUE,
                           basemap     = "none",
@@ -63,18 +65,24 @@ batch_composition <- function(kml_dir,
                           palette     = "aerial",
                           metrics     = c("exact", "weighted", "centroid",
                                           "distance"),
-                          label_ids   = 0) {
+                          label_ids   = 0,
+                          kml_dir     = NULL) {
+  if (!is.null(kml_dir)) {
+    if (is.null(dir)) dir <- kml_dir
+    warning("`kml_dir` is deprecated; the argument is now `dir`.", call. = FALSE)
+  }
+  if (is.null(dir)) stop("`dir` is required.", call. = FALSE)
 
-  if (!dir.exists(kml_dir))
-    stop("KML_DIR does not exist:\n  ", kml_dir,
+  if (!dir.exists(dir))
+    stop("Folder does not exist:\n  ", dir,
          "\nCheck the path in the CONFIG block (forward slashes, even on Windows).")
 
-  files <- list.files(kml_dir, pattern = pattern, full.names = TRUE,
+  files <- list.files(dir, pattern = pattern, full.names = TRUE,
                       ignore.case = TRUE)
   # never re-read our own outputs
   files <- files[!grepl("/Results/", files, fixed = TRUE)]
   if (length(files) == 0)
-    stop("No .kml files found in:\n  ", kml_dir)
+    stop("No .kml or .gpkg files found in:\n  ", dir)
 
   # ---- check the basemap BEFORE drawing 50 figures -----------------------
   if (isTRUE(make_maps) && !identical(basemap, "none") &&
@@ -104,7 +112,7 @@ batch_composition <- function(kml_dir,
   }
 
   logmsg("batch_composition  ", format(Sys.time(), "%Y-%m-%d %H:%M:%S"))
-  logmsg("folder : ", kml_dir)
+  logmsg("folder : ", dir)
   logmsg("files  : ", length(files))
   logmsg("kernel : ", kernel, ", lambda = ", lambda, " m, radii = ",
          paste(radii, collapse = ","), " m, grid = ", grid_res, " m")
@@ -216,9 +224,11 @@ batch_composition <- function(kml_dir,
   for (rr in sort(unique(long$radius_m), decreasing = TRUE)) {
     lw <- long[long$radius_m == rr, ]
     wa <- lw %>%
-      dplyr::select(Ovitrap_ID, full_name, area_m2, area_w, area_w_centroid) %>%
+      dplyr::select(Ovitrap_ID, full_name, area_m2, area_w, area_w_centroid,
+                    d_nearest_m) %>%
       tidyr::pivot_wider(names_from = full_name,
-                         values_from = c(area_m2, area_w, area_w_centroid),
+                         values_from = c(area_m2, area_w, area_w_centroid,
+                                         d_nearest_m),
                          names_glue = "{full_name}_{.value}")
     tw <- tank[tank$radius_m == rr,
                c("Ovitrap_ID", "tank_sealed", "tank_open", "tank_total",
@@ -252,10 +262,10 @@ batch_composition <- function(kml_dir,
                  metric_key = metric_key,
                  categories = class_dictionary(categories),
                  settings = tibble::tibble(
-                   key = c("run_time", "kml_dir", "n_files", "n_ok", "n_failed",
+                   key = c("run_time", "dir", "n_files", "n_ok", "n_failed",
                            "epsg", "radii_m", "kernel", "lambda_m", "grid_res_m",
                            "secondary", "secondary_weight", "basemap", "sf_version"),
-                   value = c(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), kml_dir,
+                   value = c(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), dir,
                              as.character(length(files)), as.character(ok),
                              as.character(length(failed)), as.character(epsg),
                              paste(radii, collapse = ","), kernel,

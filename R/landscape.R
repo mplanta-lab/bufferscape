@@ -8,7 +8,9 @@
 #' land-cover composition of a circular buffer around it, computed directly
 #' from vector polygons.
 #'
-#' @param kml Path, or vector of paths, to KML files.
+#' @param path Path, or vector of paths, to `.kml` or `.gpkg` files. The format
+#'   of each file is detected from its contents, so a single call may mix them.
+#' @param kml Deprecated name for `path`, still accepted.
 #' @param categories A category dictionary. `NULL` (default) uses the built-in
 #'   [mare_categories] schema; otherwise a `data.frame` or a path to an
 #'   `.xlsx`/`.csv` file. See [class_dictionary()].
@@ -82,7 +84,7 @@
 #'   custom dictionaries.
 #' @export
 buffer_composition <- function(
-    kml,
+    path = NULL,
     categories        = NULL,
     driver            = "KML",
     epsg              = 31983,
@@ -98,8 +100,19 @@ buffer_composition <- function(
     pool_pattern      = "pool|piscina|swimming",
     check_kml_buffer  = TRUE,
     out_xlsx          = NULL,
-    verbose           = TRUE
+    verbose           = TRUE,
+    kml               = NULL
 ) {
+
+  # `kml` was the original name, from when only KML was supported. Still
+  # accepted so existing scripts keep working.
+  if (!is.null(kml)) {
+    if (is.null(path)) path <- kml
+    warning("`kml` is deprecated; the argument is now `path`, and it accepts ",
+            ".kml and .gpkg alike.", call. = FALSE)
+  }
+  if (is.null(path))
+    stop("`path` is required: one or more .kml or .gpkg files.", call. = FALSE)
 
   secondary <- match.arg(secondary)
   if (secondary_weight < 0 || secondary_weight > 1)
@@ -109,67 +122,46 @@ buffer_composition <- function(
   cat_map <- class_dictionary(categories)
 
   # ---- 1. READ ------------------------------------------------------------
-  kml <- normalizePath(kml, mustWork = TRUE)
-  msg("Reading ", length(kml), " KML file(s)...")
-  feats <- purrr::map_dfr(kml, function(f) {
-    layers <- sf::st_layers(f, do_count = FALSE)$name
-    purrr::map_dfr(layers, function(L) {
-      x <- suppressWarnings(sf::st_read(f, layer = L, quiet = TRUE,
-                                        drivers = driver))
-      if (nrow(x) == 0) return(NULL)
-      if ("name" %in% names(x) && !"Name" %in% names(x))
-        x <- dplyr::rename(x, Name = name)
-      if ("description" %in% names(x) && !"Description" %in% names(x))
-        x <- dplyr::rename(x, Description = description)
-      if (!"Name" %in% names(x))        x$Name <- NA_character_
-      if (!"Description" %in% names(x)) x$Description <- NA_character_
-      x[, c("Name", "Description")]
-    })
-  })
+  # Format is detected per file, so a folder may mix KML and GeoPackage and a
+  # file may hold one site or several. Everything below this point works on the
+  # same normalised structure regardless of what was on disk.
+  path <- normalizePath(path, mustWork = TRUE)
+  msg("Reading ", length(path), " file(s)...")
+  reads <- lapply(path, function(f)
+    .bs_read_site_file(f, driver = driver, trap_pattern = trap_pattern,
+                       tank_pattern = tank_pattern,
+                       tank_open_pattern = tank_open_pattern,
+                       pool_pattern = pool_pattern))
+  src <- .bs_bind_reads(reads)
+  msg("  format: ", src$format)
 
-  if (nrow(feats) == 0) stop("No features found in the supplied KML file(s).")
-  feats <- sf::st_zm(feats, drop = TRUE, what = "ZM")
-  gtype <- as.character(sf::st_geometry_type(feats))
+  empty_sf <- function(x, type) {
+    if (!is.null(x) && nrow(x) > 0) return(x)
+    sf::st_sf(Name = character(0), Description = character(0),
+              geometry = sf::st_sfc(crs = sf::st_crs(src$traps)))
+  }
 
-  # ---- 2. SEGREGATE FEATURES ---------------------------------------------
-  is_pt   <- gtype == "POINT"
-  is_poly <- gtype %in% c("POLYGON", "MULTIPOLYGON")
-  is_line <- gtype %in% c("LINESTRING", "MULTILINESTRING")
-
-  keep <- function(v) which(v %in% TRUE)   # NA-safe index
-
-  traps <- feats[keep(is_pt & stringr::str_detect(feats$Name, trap_pattern)), ]
-  if (nrow(traps) == 0)
-    stop("No trap points matched `trap_pattern` (", trap_pattern, ").")
+  traps <- src$traps
+  if (is.null(traps) || nrow(traps) == 0)
+    stop("No sampling points found in the supplied file(s).", call. = FALSE)
   trap_names <- traps$Name
-  msg("  traps found: ", paste(trap_names, collapse = ", "))
+  msg("  sites found: ", paste(trap_names, collapse = ", "))
 
-  # KML-supplied buffer polygons (e.g. "VP_21_Buffer") are excluded from
-  # land-cover analysis; they are reference geometry, not classified surface.
-  is_buf     <- stringr::str_detect(feats$Name, "(?i)buffer")
-  buffer_kml <- feats[keep(is_poly &  is_buf), ]
-  polys      <- feats[keep(is_poly & !is_buf), ]
-  lines      <- feats[keep(is_line), ]
-
-  other_pts  <- feats[keep(is_pt & !(feats$Name %in% trap_names)), ]
-  # Three water-container point classes are recognised, tested in this order so
-  # a "SwimmingPool" marker is never mis-read as a tank:
-  #   1. pools  (pool_pattern)        - open standing water, prime oviposition
-  #   2. tanks  (tank_pattern)        - split into sealed vs unsealed/open
-  # Anything matching none of these is genuinely unknown and is reported.
-  is_pool <- stringr::str_detect(other_pts$Name, stringr::regex(pool_pattern, ignore_case = TRUE))
-  is_tank <- !is_pool &
-             stringr::str_detect(other_pts$Name, stringr::regex(tank_pattern, ignore_case = TRUE))
-  pools         <- other_pts[keep(is_pool), ]
-  tanks         <- other_pts[keep(is_tank), ]
-  unmatched_pts <- other_pts[keep(!is_pool & !is_tank), ]
-  tanks$open <- stringr::str_detect(tanks$Name,
-                                    stringr::regex(tank_open_pattern, ignore_case = TRUE))
+  polys      <- empty_sf(src$polys)
+  lines      <- empty_sf(src$lines)
+  buffer_kml <- empty_sf(src$buffer_ref)
+  pools      <- empty_sf(src$pools)
+  tanks      <- src$tanks
+  if (is.null(tanks) || nrow(tanks) == 0) {
+    tanks <- empty_sf(NULL); tanks$open <- logical(0)
+  }
+  unmatched_pts <- empty_sf(src$unmatched)
 
   msg("  polygons: ", nrow(polys), " | lines: ", nrow(lines),
       " | tanks: ", nrow(tanks), " (open: ", sum(tanks$open), ")",
       " | pools: ", nrow(pools),
-      if (nrow(buffer_kml) > 0) paste0(" | KML buffers excluded: ", nrow(buffer_kml)) else "")
+      if (nrow(buffer_kml) > 0)
+        paste0(" | buffers held as reference: ", nrow(buffer_kml)) else "")
   if (nrow(unmatched_pts) > 0)
     warning("Points matching no water-container pattern were ignored: ",
             paste(unique(unmatched_pts$Name), collapse = ", "), call. = FALSE)
@@ -387,9 +379,9 @@ buffer_composition <- function(
     dplyr::left_join(dist_tbl,  by = "Ovitrap_ID")
 
   meta <- tibble::tibble(
-    key = c("kml", "driver", "epsg", "radii_m", "kernel", "lambda_m", "grid_res_m",
+    key = c("path", "driver", "epsg", "radii_m", "kernel", "lambda_m", "grid_res_m",
             "secondary", "secondary_weight", "n_traps", "run_time", "sf_version"),
-    value = c(paste(basename(kml), collapse = "; "), driver, as.character(epsg),
+    value = c(paste(basename(path), collapse = "; "), driver, as.character(epsg),
               paste(radii, collapse = ","), kernel, as.character(lambda),
               as.character(grid_res), secondary, as.character(secondary_weight),
               as.character(length(trap_names)),

@@ -1,7 +1,7 @@
-test_that("the built-in dictionary is valid and has 29 classes", {
+test_that("the built-in dictionary is valid and has 28 classes", {
   d <- class_dictionary()
   expect_s3_class(d, "data.frame")
-  expect_equal(nrow(d), 29L)
+  expect_equal(nrow(d), 28L)
   expect_true(all(c("id", "category", "description", "label_en",
                     "fill", "pattern", "full_name") %in% names(d)))
   expect_false(anyDuplicated(d$id) > 0)

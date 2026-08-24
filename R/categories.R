@@ -61,7 +61,7 @@
 #' @seealso [mare_categories] for the built-in schema.
 #' @export
 class_dictionary <- function(x = NULL) {
-  if (is.null(x)) return(validate_dictionary(mare_categories))
+  if (is.null(x)) return(validate_dictionary(.bs_mare()))
   if (is.data.frame(x)) return(validate_dictionary(x))
 
   if (is.character(x) && length(x) == 1L) {
@@ -218,4 +218,23 @@ parse_class_codes <- function(x) {
       if (length(v) >= 2) as.integer(v[2]) else NA_integer_, integer(1)),
     n_codes = vapply(nums, length, integer(1))
   )
+}
+
+
+#' Fetch the built-in dictionary without relying on the search path
+#'
+#' Lazy-loaded datasets live in the package's data environment, which is not in
+#' the lookup chain used by the package's own code. A bare reference therefore
+#' works only when the package has been attached with `library()`, and fails for
+#' `bufferscape::class_dictionary()`. This resolves it either way.
+#'
+#' @keywords internal
+#' @noRd
+.bs_mare <- function() {
+  d <- get0("mare_categories", envir = asNamespace("bufferscape"),
+            inherits = FALSE)
+  if (!is.null(d)) return(d)
+  e <- new.env(parent = emptyenv())
+  utils::data("mare_categories", package = "bufferscape", envir = e)
+  get("mare_categories", envir = e)
 }

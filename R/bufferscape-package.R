@@ -20,3 +20,7 @@ utils::globalVariables(c(
   ".", "d", "d_nearest_m", "dominant_category", "label", "name",
   "pct_classified", "r"
 ))
+
+#' @keywords internal
+#' @noRd
+`%||%` <- function(a, b) if (is.null(a)) b else a

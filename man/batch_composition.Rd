@@ -5,9 +5,9 @@
 \title{Process every KML in a folder}
 \usage{
 batch_composition(
-  kml_dir,
-  out_dir = file.path(kml_dir, "Results"),
-  pattern = "\\\\.kml$",
+  dir = NULL,
+  out_dir = file.path(dir, "Results"),
+  pattern = "\\\\.(kml|gpkg)$",
   make_maps = TRUE,
   make_charts = TRUE,
   basemap = "none",
@@ -22,15 +22,17 @@ batch_composition(
   categories = NULL,
   palette = "aerial",
   metrics = c("exact", "weighted", "centroid", "distance"),
-  label_ids = 0
+  label_ids = 0,
+  kml_dir = NULL
 )
 }
 \arguments{
-\item{kml_dir}{Folder holding the KML files.}
+\item{dir}{Folder holding the \code{.kml} and/or \code{.gpkg} files.}
 
-\item{out_dir}{Output folder; defaults to \verb{Results/} inside \code{kml_dir}.}
+\item{out_dir}{Output folder; defaults to \verb{Results/} inside \code{dir}.}
 
-\item{pattern}{Regular expression selecting files.}
+\item{pattern}{Regular expression selecting files. The default takes both
+\code{.kml} and \code{.gpkg}, so a folder may mix the two.}
 
 \item{make_maps, make_charts}{Produce figures.}
 
@@ -49,6 +51,8 @@ batch_composition(
 
 \item{label_ids}{Print the class id on this many of the largest polygons in
 each map.}
+
+\item{kml_dir}{Deprecated name for \code{dir}, still accepted.}
 }
 \value{
 Invisibly, a list with \code{wide}, \code{long}, \code{tanks}, \code{distances}, \code{qc},

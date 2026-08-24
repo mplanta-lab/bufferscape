@@ -51,8 +51,19 @@ features these designs depend on.
 ## A worked example
 
 ```{r}
-kml <- system.file("extdata", "example_site.kml", package = "bufferscape")
-res <- buffer_composition(kml, radii = 50, grid_res = 5, verbose = FALSE)
+f   <- system.file("extdata", "example_site.gpkg", package = "bufferscape")
+res <- buffer_composition(f, radii = 50, grid_res = 5, verbose = FALSE)
+```
+
+The same call works on a KML. The format is detected from the file's contents,
+so there is no argument to set and a folder may hold both:
+
+```{r}
+k <- system.file("extdata", "example_site.kml", package = "bufferscape")
+identical(
+  sum(buffer_composition(k, radii = 50, grid_res = 5, verbose = FALSE)$long$area_m2),
+  sum(res$long$area_m2)
+)
 ```
 
 Composition, largest first:

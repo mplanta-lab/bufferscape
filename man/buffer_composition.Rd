@@ -5,7 +5,7 @@
 \title{Buffer-level landscape metrics for point sampling sites}
 \usage{
 buffer_composition(
-  kml,
+  path = NULL,
   categories = NULL,
   driver = "KML",
   epsg = 31983,
@@ -21,11 +21,13 @@ buffer_composition(
   pool_pattern = "pool|piscina|swimming",
   check_kml_buffer = TRUE,
   out_xlsx = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  kml = NULL
 )
 }
 \arguments{
-\item{kml}{Path, or vector of paths, to KML files.}
+\item{path}{Path, or vector of paths, to \code{.kml} or \code{.gpkg} files. The format
+of each file is detected from its contents, so a single call may mix them.}
 
 \item{categories}{A category dictionary. \code{NULL} (default) uses the built-in
 \link{mare_categories} schema; otherwise a \code{data.frame} or a path to an
@@ -67,6 +69,8 @@ file against the computed buffer and report its radius.}
 \item{out_xlsx}{Optional path; writes every table to a workbook.}
 
 \item{verbose}{Print progress.}
+
+\item{kml}{Deprecated name for \code{path}, still accepted.}
 }
 \value{
 A list with elements \code{wide} (one row per site, modelling-ready),

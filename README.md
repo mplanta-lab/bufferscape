@@ -1,6 +1,7 @@
 # bufferscape
 
 <!-- badges: start -->
+[![CRAN status](https://www.r-pkg.org/badges/version/bufferscape)](https://CRAN.R-project.org/package=bufferscape)
 [![R-CMD-check](https://github.com/mplanta-lab/bufferscape/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/mplanta-lab/bufferscape/actions/workflows/R-CMD-check.yaml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21577714.svg)](https://doi.org/10.5281/zenodo.21577714)
 <!-- badges: end -->
@@ -30,6 +31,12 @@ designs:
 ## Installation
 
 ```r
+install.packages("bufferscape")
+```
+
+Development version:
+
+```r
 # install.packages("remotes")
 remotes::install_github("mplanta-lab/bufferscape")
 ```
@@ -39,8 +46,9 @@ remotes::install_github("mplanta-lab/bufferscape")
 ```r
 library(bufferscape)
 
-kml <- system.file("extdata", "example_site.kml", package = "bufferscape")
-res <- buffer_composition(kml, radii = 50)
+# KML or GeoPackage - the format is detected, nothing to configure
+f   <- system.file("extdata", "example_site.gpkg", package = "bufferscape")
+res <- buffer_composition(f, radii = 50)
 
 head(res$long[res$long$area_m2 > 0, c("label_en", "area_m2", "area_w")])
 ```
@@ -70,6 +78,22 @@ roofs stay under 1%. Roads, drainage channels, alleys, rivers and field margins
 are exactly the geometry that breaks it, and usually the features of interest.
 `bufferscape` integrates the kernel over each polygon and reports the centroid
 version alongside, so the bias can be quantified rather than assumed away.
+
+## Input formats
+
+Sites are read from **KML** or **GeoPackage**. The format is detected from the
+file's contents, not its extension, so a folder may hold both and a single call
+may mix them. Either format may describe one site or several — a KML with three
+digitised traps and a single-site GeoPackage are handled the same way, with no
+argument to set.
+
+A GeoPackage is recognised by its `focal_points` and `landcover` layers, and
+also uses `buffers`, `water_containers`, `poi_lines` and `class_dictionary` when
+present. Anything else is read with the flat reader used for KML, where features
+are identified by placemark name.
+
+The same site read either way returns identical numbers, which the test suite
+checks on every run.
 
 ## Palettes
 

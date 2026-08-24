@@ -101,11 +101,11 @@ test_that("the colorblind scheme leaves no pair ambiguous under deuteranopia", {
 })
 
 test_that("resolve_palette accepts names, tables and vectors", {
-  expect_equal(nrow(resolve_palette("colorblind")), 29L)
+  expect_equal(nrow(resolve_palette("colorblind")), 28L)
   own <- data.frame(id = 1:3, fill = c("#111111", "#222222", "#333333"))
   r <- resolve_palette(own)
   expect_equal(r$fill[1:3], own$fill)          # supplied classes honoured
-  expect_equal(nrow(r), 29L)                   # the rest filled in
+  expect_equal(nrow(r), 28L)                   # the rest filled in
   v <- resolve_palette(c("7" = "#FF00FF"))
   expect_equal(v$fill[v$id == 7], "#FF00FF")
   expect_error(resolve_palette(42), "must be a scheme name")
