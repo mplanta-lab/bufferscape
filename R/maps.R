@@ -626,6 +626,12 @@ map_composition <- function(res, trap,
   pos  <- pos[order(-pos$area_m2), ]
   summ <- utils::head(pos, top_n)
   tkc  <- res$tanks[res$tanks$Ovitrap_ID == trap & res$tanks$radius_m == radius, ]
+  # Defensive: a site duplicated upstream would give several rows here, and a
+  # length-2 legend value is what made map drawing fail mid-batch.
+  if (nrow(tkc) > 1) tkc <- tkc[1, , drop = FALSE]
+  if (nrow(tkc) == 0)
+    tkc <- data.frame(tank_sealed = 0L, tank_open = 0L, tank_total = 0L,
+                      pool_count = 0L)
   npool <- if ("pool_count" %in% names(tkc)) as.integer(tkc$pool_count[1]) else 0L
   lab   <- if ("label_en" %in% names(summ)) summ$label_en else summ$full_name
 
@@ -680,6 +686,13 @@ map_composition <- function(res, trap,
       if (isTRUE(show_unclassified)) addR("grey hatch  not classified", "")
     }
   }
+
+  # every legend cell must be exactly one string
+  rows <- lapply(rows, function(z) {
+    z$txt <- as.character(z$txt)[1]; z$val <- as.character(z$val)[1]
+    if (is.na(z$val)) z$val <- ""
+    z
+  })
 
   n <- length(rows)
   if (n == 0) {
@@ -942,6 +955,12 @@ map_combined <- function(res, trap,
   pos  <- pos[order(-pos$area_m2), ]
   summ <- utils::head(pos, top_n)
   tkc  <- res$tanks[res$tanks$Ovitrap_ID == trap & res$tanks$radius_m == radius, ]
+  # Defensive: a site duplicated upstream would give several rows here, and a
+  # length-2 legend value is what made map drawing fail mid-batch.
+  if (nrow(tkc) > 1) tkc <- tkc[1, , drop = FALSE]
+  if (nrow(tkc) == 0)
+    tkc <- data.frame(tank_sealed = 0L, tank_open = 0L, tank_total = 0L,
+                      pool_count = 0L)
   di   <- res$distances[res$distances$Ovitrap_ID == trap, , drop = FALSE]
   lab  <- if ("label_en" %in% names(summ)) summ$label_en else summ$full_name
   npool <- if ("pool_count" %in% names(tkc)) as.integer(tkc$pool_count[1]) else 0L

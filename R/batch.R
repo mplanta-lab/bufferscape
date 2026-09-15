@@ -220,6 +220,30 @@ batch_composition <- function(dir = NULL,
   # scale-of-effect / sensitivity work. Each sheet carries all three surface
   # metrics per category (exact, kernel-weighted, centroid-weighted) plus the
   # container counts and the reference-feature distances.
+  # A site digitised in two different files (PU_1 in both PU_1ePU_4 and
+  # PU_1ePU_2ePU_3ePU_4, say) gives two rows per site per class. pivot_wider
+  # then produces list-columns, and writexl refuses to write them -- which
+  # previously threw away the entire workbook at the very end of a long run.
+  # Disambiguating keeps both, and matches how the maps are already named.
+  dup_ids <- unique(long$Ovitrap_ID[duplicated(
+    long[, c("Ovitrap_ID", "radius_m", "full_name")])])
+  if (length(dup_ids)) {
+    key <- paste(long$Ovitrap_ID, long$source_file, sep = "__")
+    long$Ovitrap_ID <- ifelse(long$Ovitrap_ID %in% dup_ids,
+                              key, long$Ovitrap_ID)
+    for (nm in c("tank", "dist", "qc", "summary_tbl")) {
+      d <- get0(nm, inherits = FALSE)
+      if (is.null(d) || !is.data.frame(d) ||
+          !all(c("Ovitrap_ID", "source_file") %in% names(d))) next
+      d$Ovitrap_ID <- ifelse(d$Ovitrap_ID %in% dup_ids,
+                             paste(d$Ovitrap_ID, d$source_file, sep = "__"),
+                             d$Ovitrap_ID)
+      assign(nm, d)
+    }
+    logmsg("[WARN] site(s) found in more than one file, kept separately as ",
+           "ID__file: ", paste(dup_ids, collapse = ", "))
+  }
+
   rad_sheets <- list()
   for (rr in sort(unique(long$radius_m), decreasing = TRUE)) {
     lw <- long[long$radius_m == rr, ]
@@ -291,7 +315,19 @@ batch_composition <- function(dir = NULL,
   if (!is.null(sheets_dup)) sheets$duplicate_traps <- sheets_dup
 
   xlsx <- file.path(out_dir, "Ovitrap_Results.xlsx")
-  writexl::write_xlsx(sheets, path = xlsx)
+  ok <- try(.bs_write_xlsx(sheets, xlsx), silent = TRUE)
+  if (inherits(ok, "try-error")) {
+    # last resort: never end a long run with nothing on disk
+    logmsg("[WARN] workbook could not be written (",
+           trimws(as.character(ok)), "); writing CSVs instead")
+    csvdir <- file.path(out_dir, "csv")
+    dir.create(csvdir, recursive = TRUE, showWarnings = FALSE)
+    for (nm in names(sheets))
+      try(utils::write.csv(as.data.frame(sheets[[nm]]),
+                           file.path(csvdir, paste0(nm, ".csv")),
+                           row.names = FALSE), silent = TRUE)
+    logmsg("csv     : ", csvdir)
+  }
 
   # ---- one container chart per community ---------------------------------
   if (isTRUE(make_charts)) {

@@ -83,6 +83,16 @@ Reads one or more KML files, and for every sampling point returns the
 land-cover composition of a circular buffer around it, computed directly
 from vector polygons.
 }
+\section{File names}{
+
+File names carry no meaning. Sites are identified from the placemark names
+inside the file, so \code{PU_1e2.kml}, \code{PU_1_2.kml}, \code{PU1ePU2.kml} and
+\verb{PU 1 et 2.kml} all behave identically; the name is used only to label the
+\code{source_file} column and to disambiguate a site that appears in two files.
+What matters is that each sampling point is named in a form
+\code{trap_pattern} matches: \code{PU_1}, \code{PU1}, \code{PU-1} and \verb{PU 1} are all accepted.
+}
+
 \section{Overlapping polygons}{
 Polygons may overlap -- a tree crown over a roof is both -- so category areas
 are \strong{not} constrained to sum to the buffer area and proportions are not

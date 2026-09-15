@@ -1,3 +1,34 @@
+#' Write a workbook without letting one bad column lose the run
+#'
+#' `writexl` refuses list-columns, and a refusal at this point throws away
+#' everything a long batch has computed. Anything non-atomic is flattened to
+#' text and reported, so the workbook is always written.
+#'
+#' @keywords internal
+#' @noRd
+.bs_write_xlsx <- function(sheets, path) {
+  bad <- character(0)
+  nms <- names(sheets)
+  sheets <- lapply(nms, function(nm) {
+    d <- as.data.frame(sheets[[nm]])
+    for (j in seq_along(d)) {
+      if (is.list(d[[j]]) && !inherits(d[[j]], "POSIXct")) {
+        bad <<- c(bad, paste0(nm, "$", names(d)[j]))
+        d[[j]] <- vapply(d[[j]], function(v)
+          paste(format(unlist(v)), collapse = "; "), character(1))
+      }
+    }
+    d
+  })
+  names(sheets) <- nms
+  if (length(bad))
+    warning("Flattened ", length(bad), " non-atomic column(s) so the workbook ",
+            "could be written: ", paste(utils::head(bad, 4), collapse = ", "),
+            if (length(bad) > 4) ", ..." else "", call. = FALSE)
+  writexl::write_xlsx(sheets, path = path)
+  path
+}
+
 #' Write a composition workbook
 #'
 #' Exports the tables from [buffer_composition()] or [batch_composition()] to a
@@ -173,7 +204,7 @@ write_composition_report <- function(x, path,
       d
     })
 
-  writexl::write_xlsx(sheets, path = path)
+  .bs_write_xlsx(sheets, path)
   message("workbook written: ", path, "  (", length(sheets), " sheets)")
   invisible(sheets)
 }

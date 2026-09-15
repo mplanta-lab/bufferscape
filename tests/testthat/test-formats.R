@@ -82,3 +82,23 @@ test_that("the built-in dictionary resolves without attaching the package", {
   # reference worked only after library(bufferscape).
   expect_equal(nrow(bufferscape::class_dictionary()), 28L)
 })
+
+
+test_that("file naming conventions do not affect the result", {
+  skip_if_not(nzchar(kml()))
+  # PU_1e2.kml, PU_1_2.kml, PU1ePU2.kml ... sites come from placemark names,
+  # never from the file name
+  d <- file.path(tempdir(), "bs_names"); dir.create(d, showWarnings = FALSE)
+  base <- suppressWarnings(buffer_composition(kml(), radii = 50, grid_res = 5,
+                                              verbose = FALSE))
+  for (nm in c("odd name.kml", "SITE_1e2.kml", "SITE1eSITE2.kml")) {
+    f <- file.path(d, nm)
+    file.copy(kml(), f, overwrite = TRUE)
+    r <- suppressWarnings(buffer_composition(f, radii = 50, grid_res = 5,
+                                             verbose = FALSE))
+    expect_equal(r$traps$Name, base$traps$Name, info = nm)
+    expect_equal(sum(r$long$area_m2), sum(base$long$area_m2), tolerance = 1e-6,
+                 info = nm)
+  }
+  unlink(d, recursive = TRUE)
+})

@@ -29,6 +29,14 @@
 #'   `"both"` gives the full area to each, so areas double-count deliberately.
 #' @param secondary_weight Share of the area given to the secondary class under
 #'   `secondary = "weighted"`.
+#' @section File names:
+#' File names carry no meaning. Sites are identified from the placemark names
+#' inside the file, so `PU_1e2.kml`, `PU_1_2.kml`, `PU1ePU2.kml` and
+#' `PU 1 et 2.kml` all behave identically; the name is used only to label the
+#' `source_file` column and to disambiguate a site that appears in two files.
+#' What matters is that each sampling point is named in a form
+#' `trap_pattern` matches: `PU_1`, `PU1`, `PU-1` and `PU 1` are all accepted.
+#'
 #' @param trap_pattern,tank_pattern,tank_open_pattern,pool_pattern Regular
 #'   expressions matching placemark names for sampling points, water tanks,
 #'   the unsealed subset of tanks, and swimming pools. Pools are tested first,
@@ -191,6 +199,9 @@ buffer_composition <- function(
   # ---- 4. PROJECT ---------------------------------------------------------
   to_proj <- function(x) if (nrow(x) > 0) sf::st_transform(x, epsg) else x
   traps_p <- to_proj(traps); polys_p <- to_proj(polys)
+  # Reprojection can reintroduce invalidity that was repaired on read, because
+  # the coordinates change. Repair once more in the CRS the overlays run in.
+  polys_p <- .bs_make_valid(polys_p, "projected land-cover polygons")
   lines_p <- to_proj(lines); tanks_p <- to_proj(tanks)
   pools_p <- to_proj(pools); bufkml_p <- to_proj(buffer_kml)
 
@@ -221,7 +232,8 @@ buffer_composition <- function(
       if (nrow(polys_p) > 0) {
         near <- polys_p[lengths(sf::st_intersects(polys_p, buf)) > 0, ]
         if (nrow(near) > 0) {
-          clip <- suppressWarnings(sf::st_intersection(near, buf))
+          clip <- .bs_safe_intersection(near, buf, tn)
+          if (is.null(clip)) next
           clip <- clip[!sf::st_is_empty(clip), ]
           if (nrow(clip) > 0) {
             clip$area_m2 <- as.numeric(sf::st_area(clip))

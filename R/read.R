@@ -45,6 +45,41 @@
                      tank_open_pattern, pool_pattern)
 }
 
+#' Repair invalid geometry
+#'
+#' Hand-digitised polygons frequently self-intersect: a boundary that crosses
+#' itself, a bow-tie, a duplicated vertex. GEOS refuses to intersect such a
+#' polygon and throws `TopologyException`, which previously aborted the whole
+#' file. Repairing on read costs little and keeps one bad polygon from
+#' discarding an entire site.
+#'
+#' @keywords internal
+#' @noRd
+.bs_make_valid <- function(x, what = "geometry") {
+  if (is.null(x) || nrow(x) == 0) return(x)
+  ok <- suppressWarnings(sf::st_is_valid(x))
+  ok[is.na(ok)] <- FALSE
+  if (all(ok)) return(x)
+  n <- sum(!ok)
+  fixed <- try(suppressWarnings(sf::st_make_valid(x)), silent = TRUE)
+  if (inherits(fixed, "try-error"))
+    fixed <- try(suppressWarnings(sf::st_buffer(x, 0)), silent = TRUE)
+  if (inherits(fixed, "try-error")) {
+    warning(n, " invalid ", what, " could not be repaired and were dropped.",
+            call. = FALSE)
+    return(x[ok, ])
+  }
+  # a repair can turn a polygon into a collection; keep only polygonal parts
+  gt <- as.character(sf::st_geometry_type(fixed))
+  if (any(gt == "GEOMETRYCOLLECTION")) {
+    ex <- try(sf::st_collection_extract(fixed, "POLYGON"), silent = TRUE)
+    if (!inherits(ex, "try-error")) fixed <- ex
+  }
+  fixed <- fixed[!sf::st_is_empty(fixed), ]
+  message("  repaired ", n, " invalid ", what)
+  fixed
+}
+
 #' @keywords internal
 #' @noRd
 .bs_read_structured <- function(f, lyr) {
@@ -69,6 +104,13 @@
   fp$Name <- if ("name" %in% names(fp) && !all(is.na(fp$name)))
     as.character(fp$name) else as.character(fp$site_id)
   fp$Description <- NA_character_
+  if (nrow(fp) > 1 && anyDuplicated(fp$Name)) {
+    dup <- unique(fp$Name[duplicated(fp$Name)])
+    warning("Site(s) present more than once in '", basename(f), "': ",
+            paste(dup, collapse = ", "), ". Keeping the first of each.",
+            call. = FALSE)
+    fp <- fp[!duplicated(fp$Name), ]
+  }
 
   lc <- gname(rd("landcover"))
   if (!is.null(lc)) {
@@ -83,6 +125,7 @@
     lc$Description <- code
     lc$Name <- if ("source_name" %in% names(lc)) as.character(lc$source_name) else "landcover"
     lc$site_id <- if ("site_id" %in% names(lc)) as.character(lc$site_id) else NA_character_
+    lc <- .bs_make_valid(lc, "land-cover polygons")
   }
 
   wc <- gname(rd("water_containers"))
@@ -155,6 +198,16 @@
   keep <- function(v) which(v %in% TRUE)
 
   traps <- feats[keep(is_pt & stringr::str_detect(feats$Name, trap_pattern)), ]
+  # The same site placed twice in one file is a digitising slip, not two sites:
+  # it would otherwise produce duplicated rows, doubled coverage, and a legend
+  # the map code cannot render.
+  if (nrow(traps) > 1 && anyDuplicated(traps$Name)) {
+    dup <- unique(traps$Name[duplicated(traps$Name)])
+    warning("Site(s) digitised more than once in '", basename(f), "': ",
+            paste(dup, collapse = ", "), ". Keeping the first of each.",
+            call. = FALSE)
+    traps <- traps[!duplicated(traps$Name), ]
+  }
   if (nrow(traps) == 0)
     stop("No sampling points in '", basename(f),
          "' matched `trap_pattern` (", trap_pattern, ").", call. = FALSE)
@@ -167,7 +220,8 @@
   is_buf <- stringr::str_detect(feats$Name, "(?i)buffer") |
             (is_poly & feats$Name %in% trap_names)
   buffer_ref <- feats[keep(is_poly &  is_buf), ]
-  polys      <- feats[keep(is_poly & !is_buf), ]
+  polys      <- .bs_make_valid(feats[keep(is_poly & !is_buf), ],
+                               "land-cover polygons")
   lines      <- feats[keep(is_line), ]
 
   other_pts <- feats[keep(is_pt & !(feats$Name %in% trap_names)), ]
@@ -215,4 +269,55 @@
                 if (length(d)) d[[1]] else NULL },
        format = paste(unique(vapply(reads, function(z) z$format, character(1))),
                       collapse = "+"))
+}
+
+
+#' Intersect two layers, surviving stubborn geometry
+#'
+#' GEOS raises `TopologyException` on geometry that remains problematic after
+#' `st_make_valid()` -- usually a sliver or a near-degenerate ring produced by
+#' hand digitising. Rather than let one such polygon abort an entire site, the
+#' overlay is retried on repaired inputs, then at reduced precision, and only
+#' then given up on, with the site reported rather than silently emptied.
+#'
+#' @keywords internal
+#' @noRd
+.bs_safe_intersection <- function(x, y, site = "") {
+  r <- try(suppressWarnings(sf::st_intersection(x, y)), silent = TRUE)
+  if (!inherits(r, "try-error")) return(r)
+
+  xv <- try(suppressWarnings(sf::st_make_valid(x)), silent = TRUE)
+  yv <- try(suppressWarnings(sf::st_make_valid(y)), silent = TRUE)
+  if (!inherits(xv, "try-error") && !inherits(yv, "try-error")) {
+    r <- try(suppressWarnings(sf::st_intersection(xv, yv)), silent = TRUE)
+    if (!inherits(r, "try-error")) return(r)
+  } else { xv <- x; yv <- y }
+
+  # snapping coordinates to a millimetre grid removes the near-degenerate
+  # vertices that GEOS objects to, at a cost far below digitising precision
+  for (g in c(1e3, 1e2, 1e1)) {
+    xs <- try(sf::st_set_precision(xv, g), silent = TRUE)
+    ys <- try(sf::st_set_precision(yv, g), silent = TRUE)
+    if (inherits(xs, "try-error") || inherits(ys, "try-error")) next
+    r <- try(suppressWarnings(sf::st_intersection(xs, ys)), silent = TRUE)
+    if (!inherits(r, "try-error")) {
+      warning("Geometry for ", site, " needed precision reduction to ",
+              1 / g * 1000, " mm before it could be intersected.",
+              call. = FALSE)
+      return(r)
+    }
+  }
+
+  # last resort: intersect polygon by polygon, dropping only the bad ones
+  keep <- vapply(seq_len(nrow(xv)), function(i)
+    !inherits(try(suppressWarnings(sf::st_intersection(xv[i, ], yv)),
+                  silent = TRUE), "try-error"), logical(1))
+  if (any(keep)) {
+    warning(sum(!keep), " polygon(s) at ", site,
+            " could not be intersected and were skipped.", call. = FALSE)
+    return(suppressWarnings(sf::st_intersection(xv[keep, ], yv)))
+  }
+  warning("No polygon at ", site, " could be intersected; site left empty.",
+          call. = FALSE)
+  NULL
 }

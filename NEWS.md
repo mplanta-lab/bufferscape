@@ -1,3 +1,26 @@
+# bufferscape 1.2.1
+
+Four failures reported from a 44-file field run, all fixed. Two of them could
+end a long run with nothing usable on disk.
+
+* **Invalid geometry no longer aborts a site.** Self-intersecting polygons --
+  common in hand digitising -- made GEOS raise `TopologyException` and the whole
+  file was abandoned. Geometry is now repaired on read and again after
+  reprojection, and an overlay that still fails is retried on repaired inputs,
+  then at reduced precision, then polygon by polygon. Only genuinely
+  irreparable polygons are skipped, and they are reported.
+* **The workbook is always written.** A site digitised in two different files
+  produced duplicate rows, `pivot_wider()` returned list-columns, and
+  `writexl` refused the lot -- discarding every table at the end of the run.
+  Such sites are now kept separately as `ID__file`, matching how their maps are
+  already named. As a backstop the writer flattens anything non-atomic, and if
+  the workbook still cannot be written the tables are saved as CSV.
+* **A site digitised twice in one file** is recognised as one site rather than
+  two. It previously doubled that site's reported coverage and produced a
+  legend value of length two, which stopped the map from being drawn.
+* **Legend cells are always scalar**, so no future data condition can fail a
+  map that way.
+
 # bufferscape 1.2.0
 
 ## The nomenclature now matches the published Table 1
