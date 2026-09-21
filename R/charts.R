@@ -121,7 +121,7 @@ plot_site_composition <- function(res, trap,
 #' -- sealed, then unsealed, then open pool -- on a viridis ramp. Sealed tanks
 #' usually dominate by an order of magnitude, so a single unsealed tank would
 #' otherwise be a one-pixel sliver: white separators keep every segment legible
-#' and the oviposition-available count is called out above each column.
+#' and the count of apparently open containers is called out above each column.
 #'
 #' @return A \pkg{ggplot} object.
 #' @export
@@ -144,7 +144,7 @@ plot_group_points <- function(tanks, community,
   d   <- d[order(num, d$Ovitrap_ID), ]
   lev <- unique(d$Ovitrap_ID)
 
-  lv <- c("sealed tank", "unsealed tank", "swimming pool")
+  lv <- c("apparently sealed", "apparently unsealed", "swimming pool")
   L <- rbind(
     data.frame(Ovitrap_ID = d$Ovitrap_ID, type = lv[1], n = d$tank_sealed),
     data.frame(Ovitrap_ID = d$Ovitrap_ID, type = lv[2], n = d$tank_open),
@@ -157,9 +157,10 @@ plot_group_points <- function(tanks, community,
 
   tot <- stats::aggregate(n ~ Ovitrap_ID, data = L, FUN = sum)
 
-  # sealed tanks usually dominate, so a single unsealed tank would otherwise be
-  # a 1-pixel sliver. A white separator keeps every segment legible, and the
-  # oviposition-available count is called out above each column.
+  # Apparently sealed tanks usually dominate, so a single open one would be a
+  # 1-pixel sliver. A white separator keeps every segment legible, and the count
+  # of containers that look open to the sky is called out above each column.
+  # "Apparently" is doing real work: a lid is not always visible from above.
   risk <- data.frame(Ovitrap_ID = d$Ovitrap_ID,
                      n = d$tank_sealed + d$tank_open + d$pool_count,
                      r = d$tank_open + d$pool_count)
@@ -183,7 +184,7 @@ plot_group_points <- function(tanks, community,
     ggplot2::labs(
       title = sprintf("%s \u2014 water containers per ovitrap (%g m buffer)",
                       community, radius),
-      subtitle = sprintf("%d traps  |  %d containers total  |  %d unsealed tanks, %d pools \u2014 the oviposition-available fraction",
+      subtitle = sprintf("%d traps  |  %d containers total  |  %d apparently unsealed tanks, %d pools \u2014 containers that look open to the sky",
                          nrow(d), sum(L$n), sum(d$tank_open), sum(d$pool_count)),
       x = NULL, y = "number of containers within buffer") +
     ggplot2::theme_minimal(base_size = 11) +

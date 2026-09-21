@@ -1,3 +1,45 @@
+# bufferscape 1.3.0
+
+## Surfaces digitised twice are detected
+
+A surface traced a second time counted twice, so a buffer that should read near
+100% classified could report 191%. Polygons with **identical geometry** are now
+collapsed to one on read. Genuine overlap -- a tree crown over a roof -- is
+different geometry and is untouched.
+
+Which copy survives depends on what it carries: if only one has a class code
+that one is kept; if the codes conflict the first is kept and the conflicting
+pair is named, because silently choosing between two interpretations would hide
+a decision the interpreter should make.
+
+A new `coverage_flag` column marks any site still above 120% after that, so
+duplication the geometric test cannot see is reported rather than passed on
+quietly. Coverage above 100% remains legitimate and is not flagged.
+
+## The aerial palette has been rebuilt
+
+Several classes were too close to tell apart, most visibly main thoroughfare
+against formal parking. Every pair is now either at least 14 CIELAB units apart
+or separated by a texture; measured across all 378 pairs, none is ambiguous.
+
+Where two classes genuinely look alike from above, the texture carries meaning:
+a grid for parking bays, vertical strokes for the deep shadow of an alley,
+horizontal strokes for the linear flow of a channel, a fine diagonal for a
+finished slab. Eight of the 28 classes now carry a texture, up from four.
+
+## Legend
+
+Class labels were cut at 32 characters, losing the end of names such as
+"Fibre-cement or asbestos sheeting". The column is wider and labels now run to
+40 characters, which covers the longest name in the schema.
+
+## Wording
+
+"unsealed tank (oviposition risk)" is now "apparently unsealed tank", and
+"sealed tank" is "apparently sealed tank". What aerial imagery supports is an
+appearance, not a determination: a lid is not always visible from above, and
+the figures should not claim more than the method can deliver.
+
 # bufferscape 1.2.1
 
 Four failures reported from a 44-file field run, all fixed. Two of them could

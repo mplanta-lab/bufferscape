@@ -307,7 +307,13 @@ buffer_composition <- function(
               area_exact   = sum(clip$area_m2),
               area_grid    = sum(clip$area_grid),
               buffer_area  = buf_area,
-              coverage_ratio = sum(clip$area_m2) / buf_area
+              coverage_ratio = sum(clip$area_m2) / buf_area,
+              # Overlap is legitimate, so above 100% is not an error. Well
+              # above it usually is: the commonest cause is a surface traced
+              # twice. Identical duplicates are removed on read, so anything
+              # still this high needs a human look.
+              coverage_flag = if (sum(clip$area_m2) / buf_area > 1.20)
+                "check: >120% - possible repeated digitising" else ""
             )
           }
         }

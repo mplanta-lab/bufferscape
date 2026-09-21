@@ -643,7 +643,7 @@ map_composition <- function(res, trap,
   addR("SURFACE COMPOSITION", "", "head")
   if (nrow(summ) == 0) addR("no classified polygons")
   for (i in seq_len(nrow(summ)))
-    addR(substr(lab[i], 1, 32),
+    addR(substr(lab[i], 1, 40),
          sprintf("%6.0f m2 %5.1f%%", summ$area_m2[i], 100 * summ$area_m2[i] / ba),
          "cat", summ$id[i])
   oth <- sum(allc$area_m2) - sum(summ$area_m2)
@@ -660,8 +660,8 @@ map_composition <- function(res, trap,
   if ("containers" %in% legend) {
   addR("", "", "blank")
   addR("POINT FEATURES", "", "head")
-  addR("sealed tank", sprintf("%6d", tkc$tank_sealed[1]), "seal")
-  addR("unsealed tank (oviposition risk)", sprintf("%6d", tkc$tank_open[1]), "open")
+  addR("apparently sealed tank", sprintf("%6d", tkc$tank_sealed[1]), "seal")
+  addR("apparently unsealed tank", sprintf("%6d", tkc$tank_open[1]), "open")
   addR("swimming pool", sprintf("%6d", npool), "pool")
   addR("TOTAL", sprintf("%6d", tkc$tank_total[1] + npool), "bold")
   }
@@ -680,8 +680,8 @@ map_composition <- function(res, trap,
         pl <- cat_map$label_en[match(pat_now$id, cat_map$id)]
         ord <- order(pl)
         for (k in ord)
-          addR(sprintf("%-11s %s", nm[[pat_now$pattern[k]]],
-                       substr(pl[k], 1, 20)), "")
+          addR(sprintf("%-10s %s", nm[[pat_now$pattern[k]]],
+                       substr(pl[k], 1, 34)), "")
       }
       if (isTRUE(show_unclassified)) addR("grey hatch  not classified", "")
     }
@@ -700,7 +700,7 @@ map_composition <- function(res, trap,
     vx <- p$xmax
     leg <- NULL
   } else {
-  gap  <- 0.06 * W; lw <- 0.80 * W
+  gap  <- 0.05 * W; lw <- 1.02 * W
   lx   <- p$xmax + gap; vx <- lx + lw
   step <- H / (max(n, 16) + 2)
   ly   <- p$ymax - step * (seq_len(n) - 0.2)
@@ -972,7 +972,7 @@ map_combined <- function(res, trap,
   addL("SURFACE COMPOSITION", "", "head")
   if (nrow(summ) == 0) addL("no classified polygons")
   for (i in seq_len(nrow(summ)))
-    addL(substr(lab[i], 1, 33),
+    addL(substr(lab[i], 1, 40),
          sprintf("%6.0f m2  %5.1f%%", summ$area_m2[i], 100 * summ$area_m2[i] / ba))
   oth <- sum(allc$area_m2) - sum(summ$area_m2)
   if (oth > 0.5) addL("other categories",
@@ -982,8 +982,8 @@ map_combined <- function(res, trap,
        "bold")
   addL("", "", "blank")
   addL("WATER CONTAINERS", "", "head")
-  addL("sealed tank", sprintf("%6d", tkc$tank_sealed[1]), "seal")
-  addL("unsealed tank (oviposition risk)", sprintf("%6d", tkc$tank_open[1]), "open")
+  addL("apparently sealed tank", sprintf("%6d", tkc$tank_sealed[1]), "seal")
+  addL("apparently unsealed tank", sprintf("%6d", tkc$tank_open[1]), "open")
   addL("swimming pool", sprintf("%6d", npool), "pool")
   addL("TOTAL", sprintf("%6d", tkc$tank_total[1] + npool), "bold")
   dc <- setdiff(names(di), "Ovitrap_ID")

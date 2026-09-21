@@ -39,5 +39,5 @@ Segments are ordered by how available the water is to an ovipositing female
 -- sealed, then unsealed, then open pool -- on a viridis ramp. Sealed tanks
 usually dominate by an order of magnitude, so a single unsealed tank would
 otherwise be a one-pixel sliver: white separators keep every segment legible
-and the oviposition-available count is called out above each column.
+and the count of apparently open containers is called out above each column.
 }

@@ -126,6 +126,7 @@
     lc$Name <- if ("source_name" %in% names(lc)) as.character(lc$source_name) else "landcover"
     lc$site_id <- if ("site_id" %in% names(lc)) as.character(lc$site_id) else NA_character_
     lc <- .bs_make_valid(lc, "land-cover polygons")
+    lc <- .bs_drop_duplicate_polygons(lc)
   }
 
   wc <- gname(rd("water_containers"))
@@ -222,6 +223,7 @@
   buffer_ref <- feats[keep(is_poly &  is_buf), ]
   polys      <- .bs_make_valid(feats[keep(is_poly & !is_buf), ],
                                "land-cover polygons")
+  polys      <- .bs_drop_duplicate_polygons(polys)
   lines      <- feats[keep(is_line), ]
 
   other_pts <- feats[keep(is_pt & !(feats$Name %in% trap_names)), ]
@@ -320,4 +322,58 @@
   warning("No polygon at ", site, " could be intersected; site left empty.",
           call. = FALSE)
   NULL
+}
+
+
+#' Drop polygons digitised twice
+#'
+#' The same surface traced a second time doubles its contribution: a buffer that
+#' should read near 100% classified reports 191%. Genuine overlap -- a tree
+#' crown over a roof -- is different geometry and is untouched here; only
+#' polygons that are geometrically *identical* are considered duplicates.
+#'
+#' Which copy is kept depends on what they carry. If only one has a class code,
+#' that one survives. If both carry the same code, either will do. If they carry
+#' *different* codes the duplication is a classification conflict rather than a
+#' slip, so the first is kept and the conflict is named, because silently
+#' choosing between two interpretations would hide a decision the interpreter
+#' should make.
+#'
+#' @keywords internal
+#' @noRd
+.bs_drop_duplicate_polygons <- function(x) {
+  if (is.null(x) || nrow(x) < 2) return(x)
+  eq <- try(suppressMessages(sf::st_equals(x)), silent = TRUE)
+  if (inherits(eq, "try-error")) return(x)
+
+  code <- if ("Description" %in% names(x)) trimws(as.character(x$Description))
+          else rep(NA_character_, nrow(x))
+  coded <- !is.na(code) & nzchar(code)
+
+  drop <- logical(nrow(x)); conflict <- character(0)
+  for (i in seq_len(nrow(x))) {
+    if (drop[i]) next
+    grp <- eq[[i]]
+    grp <- grp[grp != i & !drop[grp]]
+    if (!length(grp)) next
+    all_i <- c(i, grp)
+    keep <- if (any(coded[all_i])) all_i[which(coded[all_i])[1]] else all_i[1]
+    codes <- unique(code[all_i][coded[all_i]])
+    if (length(codes) > 1)
+      conflict <- c(conflict, paste(codes, collapse = " vs "))
+    drop[setdiff(all_i, keep)] <- TRUE
+  }
+
+  if (any(drop)) {
+    warning(sum(drop), " polygon(s) were digitised twice with identical ",
+            "geometry and the duplicates were dropped",
+            if (length(conflict))
+              paste0("; ", length(conflict),
+                     " pair(s) carried conflicting class codes (",
+                     paste(unique(conflict), collapse = ", "),
+                     ") and the first was kept -- worth checking")
+            else "", ".", call. = FALSE)
+    x <- x[!drop, ]
+  }
+  x
 }

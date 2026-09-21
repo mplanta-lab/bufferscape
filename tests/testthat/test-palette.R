@@ -130,3 +130,30 @@ test_that("more groups than hues warns rather than failing", {
   expect_equal(nrow(p), 15L)
   expect_equal(length(unique(p$fill)), 15L)
 })
+
+test_that("no two classes are indistinguishable in the aerial palette", {
+  d <- class_dictionary()
+  lab <- function(h) {
+    m <- grDevices::col2rgb(h) / 255
+    lin <- ifelse(m <= 0.04045, m / 12.92, ((m + 0.055) / 1.055)^2.4)
+    M <- matrix(c(.4124, .3576, .1805, .2126, .7152, .0722,
+                  .0193, .1192, .9505), 3, byrow = TRUE)
+    xyz <- as.vector(M %*% lin) / c(.95047, 1, 1.08883)
+    f <- ifelse(xyz > 0.008856, xyz^(1/3), 7.787 * xyz + 16/116)
+    c(116 * f[2] - 16, 500 * (f[1] - f[2]), 200 * (f[2] - f[3]))
+  }
+  L <- t(vapply(d$fill, lab, numeric(3)))
+  bad <- 0L
+  for (i in seq_len(nrow(d) - 1)) for (j in (i + 1):nrow(d)) {
+    # a pair may be close in colour only if a texture tells them apart
+    if (sqrt(sum((L[i, ] - L[j, ])^2)) < 14 && d$pattern[i] == d$pattern[j])
+      bad <- bad + 1L
+  }
+  expect_equal(bad, 0L)
+})
+
+test_that("labels fit the legend without being cut", {
+  d <- class_dictionary()
+  # map_composition truncates at 40 characters
+  expect_lte(max(nchar(d$label_en)), 40L)
+})
