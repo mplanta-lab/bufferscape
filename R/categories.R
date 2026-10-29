@@ -5,7 +5,7 @@
 #' -- the area columns, the map palette, the legend labels -- is driven by this
 #' table, so the workflow is not tied to any one classification scheme.
 #'
-#' The dictionary shipped with the package, [mare_categories], is the 29-class
+#' The dictionary shipped with the package, [mare_categories], is the 28-class
 #' schema developed for the Complexo da Maré ovitrap study. Supply your own to
 #' work in a different setting.
 #'
@@ -46,7 +46,7 @@
 #'   `label_en`, `fill`, `pattern` and `full_name`.
 #'
 #' @examples
-#' # the built-in 29-class schema
+#' # the built-in 28-class schema
 #' head(class_dictionary())
 #'
 #' # a minimal custom dictionary

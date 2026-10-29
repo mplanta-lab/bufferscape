@@ -24,20 +24,23 @@
 #'
 #' @details
 #' # Why "colorblind" works by group
-#' A palette of 29 nominal colours cannot be made safe for colour-vision
+#' A palette of 28 nominal colours cannot be made safe for colour-vision
 #' deficiency; the perceptual space is not large enough, and any such palette
 #' will contain pairs that converge under deuteranopia. Measured on
-#' [mare_categories], even a palette built entirely from colour-vision-safe
-#' primaries leaves a minimum pairwise distance of roughly 4 under simulated
-#' deuteranopia, below a comfortable discrimination threshold.
+#' [mare_categories], even viridis, a ramp designed for colour-vision
+#' deficiency, leaves a minimum pairwise distance of about 2 (CIELAB
+#' \eqn{\Delta E}) among the 28 classes under simulated deuteranopia, far below
+#' a comfortable discrimination threshold.
 #'
 #' The `"colorblind"` scheme therefore stops asking colour to do the whole job.
-#' Colour distinguishes the **coarse group** only -- 12 of them for
-#' [mare_categories], where the minimum distance under simulated deuteranopia
-#' rises to about 7.6 -- and within a group, members are separated by a
-#' lightness step and by a distinct texture. No class depends on hue as its only
-#' cue, which is the property that makes a figure accessible, and it also
-#' survives greyscale printing.
+#' Colour distinguishes the **coarse group** only -- nine of them for
+#' [mare_categories], whose hues stay at least 7.3 apart under simulated
+#' deuteranopia -- and within a group, members are separated by a lightness
+#' step and by a distinct texture. No class depends on hue as its only cue,
+#' which is the property that makes a figure accessible, and it also survives
+#' greyscale printing. Counting texture as a cue, no pair of the 378 is left
+#' ambiguous (closer than 10 under simulated deuteranopia with the same
+#' texture), against 5 for `"aerial"` and 35 for `"viridis"`.
 #'
 #' If a dictionary has more groups than available hues, the bank is cycled with
 #' a lightness offset and a warning is issued: at that point the grouping is
@@ -76,9 +79,10 @@ class_palette <- function(categories = class_dictionary(),
                       pattern = "none", stringsAsFactors = FALSE))
 
   # textures used to separate members within a single group
-  # nine textures plus "none" = ten distinct marks, which covers the largest
-  # group in the built-in dictionary. Members are additionally separated by a
-  # lightness step, so a repeat would still be distinguishable.
+  # eight textures plus "none" = nine distinct marks, which covers the largest
+  # group in the built-in dictionary (roofing, eight classes). Members are
+  # additionally separated by a lightness step, so a repeat would still be
+  # distinguishable.
   tex <- c("none", "diag", "cross", "dots", "horiz", "vert", "grid",
            "diag2", "dots2")
 

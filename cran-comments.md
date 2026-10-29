@@ -1,35 +1,32 @@
 ## Submission
 
-This is an update of an existing CRAN package (current version on CRAN: 1.0.3).
+This is an update of an existing CRAN package (current version on CRAN:
+1.0.3). It collects the changes made since that release; NEWS.md lists them in
+full.
 
-### What has changed
+### Main changes since 1.0.3
 
-* Input files may now be **GeoPackage** as well as KML. The format is detected
-  from the file's contents, and a file may describe one site or several in
-  either format.
-* The bundled `mare_categories` dataset has been brought into line with the
-  nomenclature published in the accompanying article: 28 classes in nine
-  thematic groups, rather than 29 classes in twelve. This changes the class
-  labels used to build output column names; it is documented in NEWS.md.
-* Two fixes: a buffer polygon digitised under its site's own name was treated as
-  land cover, and `bufferscape::class_dictionary()` failed unless the package
-  had been attached with `library()`.
-
-See NEWS.md for the full list.
+* Input may now be GeoPackage as well as KML. The format is detected from the
+  file's contents.
+* The bundled `mare_categories` dataset now matches the nomenclature of the
+  accompanying article (28 classes in nine thematic groups).
+* Robustness for hand-digitised data: self-intersecting polygons are repaired
+  instead of aborting a file, and sites or polygons digitised twice are
+  detected rather than double-counted. The output workbook is always written.
+* Figures: the colour palette was rebuilt so that no two classes are
+  indistinguishable, the north arrow now points north, and textures are drawn
+  completely on concave polygons.
 
 ## Test environments
 
 * local: Ubuntu 24.04, R 4.3.3
-* win-builder: R-devel and R release
-* GitHub Actions: ubuntu-latest (R release, R devel), macos-latest (R release),
-  windows-latest (R release)
+* win-builder: R-devel
+* GitHub Actions: ubuntu-latest (R release and R devel), macos-latest
+  (R release), windows-latest (R release)
 
 ## R CMD check results
 
-0 errors | 0 warnings | 1 note
-
-* The note reports possibly invalid URLs for doi.org and orcid.org. Both
-  resolve in a browser; those hosts return HTTP 403 to automated requests.
+0 errors | 0 warnings | 0 notes
 
 ## Reverse dependencies
 

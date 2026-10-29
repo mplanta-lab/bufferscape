@@ -23,7 +23,8 @@
 #'   \item{label_en}{English label used on figures}
 #'   \item{fill}{hex colour, chosen to echo the appearance in aerial imagery}
 #'   \item{pattern}{overprinted texture: `"none"`, `"dots"`, `"dots2"`,
-#'     `"diag"` or `"cross"`, used where classes share a base material}
+#'     `"diag"`, `"diag2"`, `"cross"`, `"horiz"`, `"vert"` or `"grid"`, used
+#'     where classes share a base material or are close in colour}
 #' }
 #'
 #' @source Planta M. Qualitative assessment schema for urban polygons in Rio de

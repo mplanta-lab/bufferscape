@@ -151,14 +151,23 @@ batch_composition <- function(dir = NULL,
     if (!is.null(r$buffer_check) && nrow(r$buffer_check) > 0)
       BC[[nm]] <- r$buffer_check
 
-    cov <- if (nrow(r$qc)) sprintf("%.1f%% classified", 100 * r$qc$coverage_ratio[1]) else "no polygons"
-    message(sprintf("%3d poly | %s | %2d tanks (%d unsealed)",
-                if (nrow(r$qc)) r$qc$n_polygons[1] else 0L, cov,
-                r$tanks$tank_total[1], r$tanks$tank_open[1]))
-    logmsg("[ok]   ", nm, " : traps ", paste(r$traps$Name, collapse = ","),
-           " | polygons ", if (nrow(r$qc)) r$qc$n_polygons[1] else 0L,
-           " | coverage ", cov,
-           " | tanks ", r$tanks$tank_total[1], " (", r$tanks$tank_open[1], " unsealed)")
+    # Every site in the file, at the primary (largest) radius -- the one the
+    # maps, the summary and the end-of-run coverage check use. Row 1 of qc was
+    # reported before: the first site only, at the smallest radius.
+    prim <- if (nrow(r$qc)) max(r$qc$radius_m) else max(radii)
+    q    <- r$qc[r$qc$radius_m == prim, , drop = FALSE]
+    tq   <- r$tanks[r$tanks$radius_m == prim, , drop = FALSE]
+    site_txt <- vapply(r$traps$Name, function(tn) {
+      qi <- q[q$Ovitrap_ID == tn, , drop = FALSE]
+      ti <- tq[tq$Ovitrap_ID == tn, , drop = FALSE]
+      sprintf("%s %s, %d polygons, %d tanks (%d unsealed)", tn,
+              if (nrow(qi)) sprintf("%.1f%% classified", 100 * qi$coverage_ratio[1])
+              else "no polygons",
+              if (nrow(qi)) as.integer(qi$n_polygons[1]) else 0L,
+              if (nrow(ti)) as.integer(ti$tank_total[1]) else 0L,
+              if (nrow(ti)) as.integer(ti$tank_open[1]) else 0L)
+    }, character(1))
+    logmsg("[ok]   ", nm, " @ ", prim, " m : ", paste(site_txt, collapse = " | "))
 
     if (isTRUE(make_maps)) {
       for (tn in r$traps$Name) {
@@ -315,11 +324,12 @@ batch_composition <- function(dir = NULL,
   if (!is.null(sheets_dup)) sheets$duplicate_traps <- sheets_dup
 
   xlsx <- file.path(out_dir, "Ovitrap_Results.xlsx")
-  ok <- try(.bs_write_xlsx(sheets, xlsx), silent = TRUE)
-  if (inherits(ok, "try-error")) {
+  # (not `ok`: that holds the number of files read, reported below)
+  wr <- try(.bs_write_xlsx(sheets, xlsx), silent = TRUE)
+  if (inherits(wr, "try-error")) {
     # last resort: never end a long run with nothing on disk
     logmsg("[WARN] workbook could not be written (",
-           trimws(as.character(ok)), "); writing CSVs instead")
+           trimws(as.character(wr)), "); writing CSVs instead")
     csvdir <- file.path(out_dir, "csv")
     dir.create(csvdir, recursive = TRUE, showWarnings = FALSE)
     for (nm in names(sheets))
@@ -355,7 +365,8 @@ batch_composition <- function(dir = NULL,
   if (length(failed)) logmsg("FAILED   : ", paste(failed, collapse = ", "))
 
   message("\n", strrep("=", 74), "\n")
-  message("  traps processed : ", nrow(summary_tbl), "\n")
+  # summary_tbl has one row per trap and radius
+  message("  traps processed : ", length(unique(summary_tbl$Ovitrap_ID)), "\n")
   message("  workbook        : ", xlsx, "\n")
   if (isTRUE(make_maps)) message("  maps            : ", map_dir, "\n")
   if (isTRUE(make_charts)) message("  charts          : ", chart_dir, "\n")

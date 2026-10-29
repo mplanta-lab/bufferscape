@@ -76,3 +76,32 @@ test_that("a basemap request does not crash the batch runner", {
   )
   unlink(d, recursive = TRUE)
 })
+
+test_that("the batch log reports every site at the primary radius", {
+  skip_no_writexl(); skip_if_not(nzchar(kml()))
+  # a second sampling point in the same file, about 40 m from the first
+  x  <- readLines(kml(), warn = FALSE)
+  p1 <- paste0("<Placemark><name>SITE_1</name><Point><coordinates>",
+               "-43.50000000,-23.00000000,0</coordinates></Point></Placemark>")
+  p2 <- sub("-43.50000000,-23.00000000", "-43.49970000,-22.99980000",
+            sub("SITE_1", "SITE_2", p1, fixed = TRUE), fixed = TRUE)
+  two <- sub(p1, paste0(p1, p2), x, fixed = TRUE)
+  skip_if(identical(two, x), "example file layout changed")
+
+  d <- file.path(tempdir(), "bs_log_test")
+  unlink(d, recursive = TRUE); dir.create(d)
+  writeLines(two, file.path(d, "SITE_1eSITE_2.kml"))
+  suppressWarnings(suppressMessages(
+    batch_composition(d, radii = c(20, 50), grid_res = 5,
+                      make_maps = FALSE, make_charts = FALSE)))
+  log <- readLines(file.path(d, "Results", "run_log.txt"))
+  ok  <- grep("^\\[ok\\]", log, value = TRUE)
+  expect_length(ok, 1)
+  # both sites, at 50 m rather than the first site at 20 m
+  expect_match(ok, "@ 50 m")
+  expect_match(ok, "SITE_1 [0-9.]+% classified")
+  expect_match(ok, "SITE_2 [0-9.]+% classified")
+  # the closing line counts files, not the workbook path
+  expect_true(any(grepl("1 ok, 0 failed", log, fixed = TRUE)))
+  unlink(d, recursive = TRUE)
+})

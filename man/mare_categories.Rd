@@ -13,7 +13,8 @@ A data frame with 28 rows and 6 columns:
 \item{label_en}{English label used on figures}
 \item{fill}{hex colour, chosen to echo the appearance in aerial imagery}
 \item{pattern}{overprinted texture: \code{"none"}, \code{"dots"}, \code{"dots2"},
-\code{"diag"} or \code{"cross"}, used where classes share a base material}
+\code{"diag"}, \code{"diag2"}, \code{"cross"}, \code{"horiz"}, \code{"vert"} or \code{"grid"}, used
+where classes share a base material or are close in colour}
 }
 }
 \source{

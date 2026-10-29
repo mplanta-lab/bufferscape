@@ -1,3 +1,49 @@
+# bufferscape 1.3.1
+
+## The north arrow pointed south
+
+All three map functions drew the arrowhead on the southern end of the shaft, so
+the arrow under the "N" pointed down. It now points north -- to true north,
+read from the map's coordinate system at the sampling point, so it stays right
+in a projection whose grid is not aligned with the meridians. In UTM the
+difference from grid north is the meridian convergence, about 0.7 degrees at
+Maré and invisible at figure scale; in Web Mercator, used under Esri imagery, it
+is zero.
+
+## Hatching was incomplete on concave polygons
+
+A hatch line crossing a concave polygon more than once kept only its first
+piece. Textures therefore covered only part of the polygons they belonged to --
+most visibly the grey hatching of unclassified ground, which is almost always
+concave -- and every map emitted a run of "keeping first linestring only"
+warnings. Every piece is now drawn. This affected drawing only: areas, weights,
+counts and distances were never involved.
+
+## The batch log reported the wrong radius
+
+`batch_composition()` printed, for each file, the coverage of its first site at
+the **smallest** radius -- 20 m with the default radii -- while the maps, the
+summary sheet and the end-of-run coverage check all use the largest. A file with
+three sites showed one. Every site is now reported, at the primary radius:
+
+    [ok]   SITE_1eSITE_2 @ 50 m : SITE_1 51.6% classified, 37 polygons,
+           21 tanks (1 unsealed) | SITE_2 36.1% classified, 27 polygons, ...
+
+Coverage figures read from earlier logs were therefore 20 m figures for the
+first site of each file. The workbook was always correct.
+
+## Smaller fixes
+
+* The closing line of the batch log printed the workbook path where the number
+  of files read belonged, and "traps processed" counted one row per trap and
+  radius.
+* `plot_site_composition()` reported "of 29 categories" whatever dictionary was
+  in use; it now counts the dictionary actually used.
+* `citation("bufferscape")` takes the version from `DESCRIPTION`, so it can no
+  longer drift from the release.
+* Documentation brought in line with the 28-class schema: palette statistics,
+  the texture vocabulary and the remaining "29-class" mentions.
+
 # bufferscape 1.3.0
 
 ## Surfaces digitised twice are detected

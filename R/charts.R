@@ -63,6 +63,9 @@ plot_site_composition <- function(res, trap,
 
   tkc <- res$tanks[res$tanks$Ovitrap_ID == trap & res$tanks$radius_m == radius, ]
   npool <- if ("pool_count" %in% names(tkc)) as.integer(tkc$pool_count[1]) else 0L
+  # size of the dictionary actually in use, not of the built-in one
+  ncat <- if (is.data.frame(res$categories)) nrow(res$categories)
+          else length(unique(res$long$id))
 
   g <- ggplot2::ggplot(d, ggplot2::aes(x = label, y = area_m2)) +
     ggplot2::geom_col(fill = cols, width = 0.72) +
@@ -72,8 +75,8 @@ plot_site_composition <- function(res, trap,
     ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0.26))) +
     ggplot2::labs(
       title = sprintf("Ovitrap %s \u2014 land-cover composition (%g m buffer)", trap, radius),
-      subtitle = sprintf("%d of 29 categories present  |  %.0f m2 classified (%.1f%% of buffer)  |  %d water containers",
-                         nrow(d), sum(d$area_m2), 100 * sum(d$area_m2) / ba,
+      subtitle = sprintf("%d of %d categories present  |  %.0f m2 classified (%.1f%% of buffer)  |  %d water containers",
+                         nrow(d), ncat, sum(d$area_m2), 100 * sum(d$area_m2) / ba,
                          tkc$tank_total[1] + npool),
       x = NULL, y = "surface area within buffer (m2)") +
     ggplot2::theme_minimal(base_size = 11) +

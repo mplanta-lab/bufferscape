@@ -40,20 +40,23 @@ chart functions. Separating this from the drawing code means a scheme can be
 inspected, tested and swapped without touching a figure.
 }
 \section{Why "colorblind" works by group}{
-A palette of 29 nominal colours cannot be made safe for colour-vision
+A palette of 28 nominal colours cannot be made safe for colour-vision
 deficiency; the perceptual space is not large enough, and any such palette
 will contain pairs that converge under deuteranopia. Measured on
-\link{mare_categories}, even a palette built entirely from colour-vision-safe
-primaries leaves a minimum pairwise distance of roughly 4 under simulated
-deuteranopia, below a comfortable discrimination threshold.
+\link{mare_categories}, even viridis, a ramp designed for colour-vision
+deficiency, leaves a minimum pairwise distance of about 2 (CIELAB
+\eqn{\Delta E}) among the 28 classes under simulated deuteranopia, far below
+a comfortable discrimination threshold.
 
 The \code{"colorblind"} scheme therefore stops asking colour to do the whole job.
-Colour distinguishes the \strong{coarse group} only -- 12 of them for
-\link{mare_categories}, where the minimum distance under simulated deuteranopia
-rises to about 7.6 -- and within a group, members are separated by a
-lightness step and by a distinct texture. No class depends on hue as its only
-cue, which is the property that makes a figure accessible, and it also
-survives greyscale printing.
+Colour distinguishes the \strong{coarse group} only -- nine of them for
+\link{mare_categories}, whose hues stay at least 7.3 apart under simulated
+deuteranopia -- and within a group, members are separated by a lightness
+step and by a distinct texture. No class depends on hue as its only cue,
+which is the property that makes a figure accessible, and it also survives
+greyscale printing. Counting texture as a cue, no pair of the 378 is left
+ambiguous (closer than 10 under simulated deuteranopia with the same
+texture), against 5 for \code{"aerial"} and 35 for \code{"viridis"}.
 
 If a dictionary has more groups than available hues, the bank is cycled with
 a lightness offset and a warning is issued: at that point the grouping is

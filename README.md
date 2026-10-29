@@ -56,7 +56,7 @@ head(res$long[res$long$area_m2 > 0, c("label_en", "area_m2", "area_w")])
 Any radius works; scale bars on the figures adapt.
 
 ```r
-res <- buffer_composition(kml, radii = c(100, 250, 500), lambda = 300)
+res <- buffer_composition(f, radii = c(100, 250, 500), lambda = 300)
 ```
 
 A whole folder at once, writing a workbook, maps and charts:
@@ -106,12 +106,13 @@ map_composition(res, "SITE_1", palette = "greyscale")   # print
 map_composition(res, "SITE_1", palette = c("7" = "#FF00FF"))
 ```
 
-A palette of 29 nominal colours cannot be made safe for colour-vision
+A palette of 28 nominal colours cannot be made safe for colour-vision
 deficiency; the space is not large enough. The `"colorblind"` scheme therefore
 uses colour for the coarse **group** only and separates members within a group
 by lightness and texture, so no class depends on hue alone. Counting texture as
-a cue, it leaves **0 of 406 class pairs** ambiguous under simulated
-deuteranopia, against 3 for the appearance-matched palette and 11 for viridis.
+a cue, it leaves **0 of 378 class pairs** ambiguous under simulated
+deuteranopia (CIELAB distance below 10 with the same texture), against 5 for
+the appearance-matched palette and 35 for viridis.
 
 Maps and charts take the same `palette` argument, so a figure pair can be made
 to match.
@@ -125,14 +126,14 @@ write_composition_report(res, "out.xlsx",
                          digits  = 2)
 ```
 
-`metrics` matters: carrying all four metrics for 29 classes is 126 columns.
-Dropping the centroid comparison when you are not doing the methods analysis
-roughly halves that.
+`metrics` matters: carrying all four metrics for 28 classes gives 121 columns
+per radius. Keeping only `exact` and `weighted`, as above, gives 65 -- the
+centroid comparison is only needed for the methods analysis.
 
 ## Methods diagnostic
 
 ```r
-bias <- centroid_bias(kml, radii = 50)
+bias <- centroid_bias(f, radii = 50)
 summarise_centroid_bias(bias)          # by polygon geometry
 ```
 
@@ -145,11 +146,11 @@ own <- data.frame(
   description = c("pond", "roof", "canopy"),
   fill        = c("#2C7FB8", "#BDBDBD", "#31A354")
 )
-res <- buffer_composition(kml, categories = own)
+res <- buffer_composition(f, categories = own)
 ```
 
 Only `id`, `category` and `description` are required. `validate_dictionary()`
-checks a dictionary before a long run. The 29-class schema used in the worked
+checks a dictionary before a long run. The 28-class schema used in the worked
 example ships as `mare_categories`.
 
 ## Citation

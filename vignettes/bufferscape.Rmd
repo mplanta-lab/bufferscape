@@ -151,7 +151,7 @@ Scale bars on the figures adapt automatically.
 
 ## Using your own classification
 
-The 29-class schema shipped with the package is specific to informal
+The 28-class schema shipped with the package is specific to informal
 settlements in Rio de Janeiro. Nothing else in the package depends on it.
 
 ```{r}

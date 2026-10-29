@@ -57,7 +57,14 @@
     ex <- try(sf::st_collection_extract(cut, "LINESTRING"), silent = TRUE)
     if (!inherits(ex, "try-error")) cut <- ex
   }
-  cut <- try(sf::st_cast(cut, "LINESTRING", warn = FALSE), silent = TRUE)
+  # A hatch line crossing a concave polygon more than once comes back as a
+  # MULTILINESTRING next to plain LINESTRINGs. Casting that mixed set straight
+  # to LINESTRING works element by element and keeps only the first piece of
+  # each multi-part line ("keeping first linestring only"), so hatching went
+  # missing from concave polygons. Promoting everything to MULTILINESTRING
+  # first makes the split exact.
+  cut <- try(sf::st_cast(sf::st_cast(cut, "MULTILINESTRING"), "LINESTRING"),
+             silent = TRUE)
   if (inherits(cut, "try-error") || length(cut) == 0) return(NULL)
   cm <- try(sf::st_coordinates(cut), silent = TRUE)
   if (inherits(cm, "try-error") || is.null(cm) || nrow(cm) == 0) return(NULL)
@@ -291,6 +298,56 @@
   list(len = m * k, label = lab)
 }
 
+# ---- north arrow -----------------------------------------------------------
+# Direction of true north at the sampling point, as a unit vector in the
+# drawing CRS. "Up" on a projected map is grid north, which departs from true
+# north by the meridian convergence: zero in Web Mercator (used under Esri
+# imagery), about 0.7 degrees at Mare in EPSG:31983, more near the edge of a
+# UTM zone, and arbitrary in a CRS with a rotated grid. Reading the direction
+# off the CRS keeps the arrow right in any projection; if the point cannot be
+# transformed the arrow falls back to grid north.
+#' @keywords internal
+#' @noRd
+.bs_north_dir <- function(pt) {
+  up <- c(0, 1)
+  g  <- try(sf::st_geometry(pt)[1], silent = TRUE)
+  if (inherits(g, "try-error") || length(g) == 0 || is.na(sf::st_crs(g)))
+    return(up)
+  u <- try({
+    xy0 <- sf::st_coordinates(g)[1, 1:2]
+    ll  <- sf::st_coordinates(sf::st_transform(g, 4326))[1, 1:2]
+    dl  <- if (ll[2] < 89) 1e-4 else -1e-4      # ~11 m along the meridian
+    nn  <- sf::st_sfc(sf::st_point(c(ll[1], ll[2] + dl)), crs = 4326)
+    xy1 <- sf::st_coordinates(sf::st_transform(nn, sf::st_crs(g)))[1, 1:2]
+    v   <- sign(dl) * (xy1 - xy0)
+    v / sqrt(sum(v^2))
+  }, silent = TRUE)
+  if (inherits(u, "try-error") || length(u) != 2 || any(!is.finite(u))) up
+  else unname(u)
+}
+
+# The arrow and its "N" as a list of layers. (x, y) is the centre of the shaft,
+# `len` its length and `gap` the distance from the arrowhead to the centre of
+# the "N", all in map units. The head is drawn at the shaft's northern end:
+# with `ends = "first"` it sat on the southern end, and the arrow pointed south.
+#' @keywords internal
+#' @noRd
+.bs_north_arrow <- function(pt, x, y, len, gap, colour,
+                            size = 4.3, linewidth = 0.7, head = 0.15) {
+  u <- .bs_north_dir(pt)
+  h <- len / 2
+  list(
+    ggplot2::annotate("text", x = x + (h + gap) * u[1], y = y + (h + gap) * u[2],
+                      label = "N", colour = colour, fontface = 2, size = size),
+    ggplot2::annotate("segment",
+                      x = x - h * u[1], xend = x + h * u[1],
+                      y = y - h * u[2], yend = y + h * u[2],
+                      colour = colour, linewidth = linewidth,
+                      arrow = ggplot2::arrow(length = ggplot2::unit(head, "cm"),
+                                             ends = "last"))
+  )
+}
+
 # =============================================================================
 # 1. SATELLITE MAP : imagery + buffer + trap
 # =============================================================================
@@ -354,13 +411,9 @@ map_basemap <- function(res, trap,
                       ymin = sy, ymax = sy + 0.008 * H, fill = ink) +
     ggplot2::annotate("text", x = sx + sl / 2, y = sy + 0.033 * H,
                       label = sb$label, colour = ink, size = 3.1) +
-    ggplot2::annotate("text", x = p$xmin + 0.05 * W, y = p$ymax - 0.06 * H,
-                      label = "N", colour = ink, fontface = 2, size = 4.5) +
-    ggplot2::annotate("segment", x = p$xmin + 0.05 * W, xend = p$xmin + 0.05 * W,
-                      y = p$ymax - 0.105 * H, yend = p$ymax - 0.075 * H,
-                      colour = ink, linewidth = 0.8,
-                      arrow = ggplot2::arrow(length = ggplot2::unit(0.16, "cm"),
-                                             ends = "first")) +
+    .bs_north_arrow(p$trap_d, x = p$xmin + 0.05 * W, y = p$ymax - 0.090 * H,
+                    len = 0.030 * H, gap = 0.015 * H, colour = ink,
+                    size = 4.5, linewidth = 0.8, head = 0.16) +
     ggplot2::coord_fixed(1, xlim = c(p$xmin, p$xmax), ylim = c(p$ymin, p$ymax),
                          expand = FALSE) +
     ggplot2::labs(
@@ -611,13 +664,8 @@ map_composition <- function(res, trap,
                       ymin = sy, ymax = sy + 0.007 * H, fill = "grey15") +
     ggplot2::annotate("text", x = sx + sb$len / 2, y = sy + 0.031 * H,
                       label = sb$label, colour = "grey15", size = 3) +
-    ggplot2::annotate("text", x = p$xmin + 0.045 * W, y = p$ymax - 0.055 * H,
-                      label = "N", colour = "grey15", fontface = 2, size = 4.3) +
-    ggplot2::annotate("segment", x = p$xmin + 0.045 * W, xend = p$xmin + 0.045 * W,
-                      y = p$ymax - 0.100 * H, yend = p$ymax - 0.072 * H,
-                      colour = "grey15", linewidth = 0.7,
-                      arrow = ggplot2::arrow(length = ggplot2::unit(0.15, "cm"),
-                                             ends = "first"))
+    .bs_north_arrow(p$trap_d, x = p$xmin + 0.045 * W, y = p$ymax - 0.086 * H,
+                    len = 0.028 * H, gap = 0.017 * H, colour = "grey15")
 
   # ---- legend -------------------------------------------------------------
   ba   <- as.numeric(sf::st_area(p$buf))
@@ -1065,13 +1113,8 @@ map_combined <- function(res, trap,
                       ymin = sy, ymax = sy + 0.007 * H, fill = ink) +
     ggplot2::annotate("text", x = sx + sl / 2, y = sy + 0.031 * H,
                       label = sb$label, colour = ink, size = 3) +
-    ggplot2::annotate("text", x = xmin + 0.045 * W, y = ymax - 0.055 * H,
-                      label = "N", colour = ink, fontface = 2, size = 4.3) +
-    ggplot2::annotate("segment", x = xmin + 0.045 * W, xend = xmin + 0.045 * W,
-                      y = ymax - 0.100 * H, yend = ymax - 0.072 * H,
-                      colour = ink, linewidth = 0.7,
-                      arrow = ggplot2::arrow(length = ggplot2::unit(0.15, "cm"),
-                                             ends = "first")) +
+    .bs_north_arrow(trap_d, x = xmin + 0.045 * W, y = ymax - 0.086 * H,
+                    len = 0.028 * H, gap = 0.017 * H, colour = ink) +
     # legend text, inside the same panel - no composition, no guides
     ggplot2::geom_text(data = leg,
                        ggplot2::aes(x = x, y = y, label = txt),

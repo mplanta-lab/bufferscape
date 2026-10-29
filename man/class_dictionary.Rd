@@ -25,7 +25,7 @@ each digitised polygon to a named land-cover category. Everything downstream
 table, so the workflow is not tied to any one classification scheme.
 }
 \details{
-The dictionary shipped with the package, \link{mare_categories}, is the 29-class
+The dictionary shipped with the package, \link{mare_categories}, is the 28-class
 schema developed for the Complexo da Maré ovitrap study. Supply your own to
 work in a different setting.
 
@@ -57,7 +57,7 @@ A \code{full_name} column (\code{id_category_description}) is added automaticall
 is what the output column names are built from.
 }
 \examples{
-# the built-in 29-class schema
+# the built-in 28-class schema
 head(class_dictionary())
 
 # a minimal custom dictionary
