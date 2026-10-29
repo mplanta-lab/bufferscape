@@ -25,3 +25,6 @@ pkgdown/
 # OS
 .DS_Store
 Thumbs.db
+
+# files saved next to the package, never part of it
+Claude outputs/

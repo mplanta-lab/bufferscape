@@ -298,6 +298,23 @@
   list(len = m * k, label = lab)
 }
 
+# ---- subtitle counts -------------------------------------------------------
+# Polygons intersecting the buffer, as counted by buffer_composition(). The
+# subtitle used to print the number of classes present under the label
+# "classified polygons".
+#' @keywords internal
+#' @noRd
+.bs_count_txt <- function(res, trap, radius, n_class, fallback = NA_integer_) {
+  q  <- res$qc
+  np <- if (is.data.frame(q) && all(c("Ovitrap_ID", "radius_m", "n_polygons") %in% names(q)))
+    q$n_polygons[q$Ovitrap_ID == trap & q$radius_m == radius] else integer(0)
+  np <- if (length(np) && !is.na(np[1])) as.integer(np[1]) else as.integer(fallback)
+  n_class <- as.integer(n_class)
+  sprintf("%s polygon%s in %d class%s",
+          if (is.na(np)) "?" else as.character(np), if (identical(np, 1L)) "" else "s",
+          n_class, if (n_class == 1L) "" else "es")
+}
+
 # ---- north arrow -----------------------------------------------------------
 # Direction of true north at the sampling point, as a unit vector in the
 # drawing CRS. "Up" on a projected map is grid north, which departs from true
@@ -728,10 +745,11 @@ map_composition <- function(res, trap,
         pl <- cat_map$label_en[match(pat_now$id, cat_map$id)]
         ord <- order(pl)
         for (k in ord)
-          addR(sprintf("%-10s %s", nm[[pat_now$pattern[k]]],
+          addR(sprintf("%-16s %s", nm[[pat_now$pattern[k]]],
                        substr(pl[k], 1, 34)), "")
       }
-      if (isTRUE(show_unclassified)) addR("grey hatch  not classified", "")
+      if (isTRUE(show_unclassified))
+        addR(sprintf("%-16s %s", "grey hatch", "not classified"), "")
     }
   }
 
@@ -823,8 +841,10 @@ map_composition <- function(res, trap,
       title = if (is.null(title))
         sprintf("%s \u2014 land cover within %g m", trap, radius) else title,
       subtitle = if (is.null(subtitle))
-        sprintf("%d classified polygons  |  %.1f%% of buffer classified  |  %d point features  |  overlapping polygons drawn largest-first",
-                nrow(pos), 100 * sum(allc$area_m2) / ba,
+        sprintf("%s  |  %.1f%% of buffer classified  |  %d point features  |  overlapping polygons drawn largest-first",
+                .bs_count_txt(res, trap, radius, nrow(pos),
+                              if (is.null(p$lay)) 0L else nrow(p$lay)),
+                100 * sum(allc$area_m2) / ba,
                 tkc$tank_total[1] + npool) else subtitle,
       caption = caption) +
     ggplot2::theme_void(base_size = 11) +
@@ -1150,8 +1170,10 @@ map_combined <- function(res, trap,
                          ylim = c(ymin, ymax), expand = FALSE) +
     ggplot2::labs(
       title = sprintf("Ovitrap %s \u2014 urban morphology within %g m", trap, radius),
-      subtitle = sprintf("%d classified polygons  |  %.1f%% of buffer classified  |  %d water containers  |  kernel %s, lambda = %s m",
-                         nrow(pos), 100 * sum(allc$area_m2) / ba,
+      subtitle = sprintf("%s  |  %.1f%% of buffer classified  |  %d water containers  |  kernel %s, lambda = %s m",
+                         .bs_count_txt(res, trap, radius, nrow(pos),
+                                       if (is.null(lay)) 0L else nrow(lay)),
+                         100 * sum(allc$area_m2) / ba,
                          tkc$tank_total[1] + npool,
                          res$meta$value[res$meta$key == "kernel"],
                          res$meta$value[res$meta$key == "lambda_m"]),

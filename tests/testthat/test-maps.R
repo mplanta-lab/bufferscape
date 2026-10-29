@@ -67,3 +67,18 @@ test_that("hatching keeps every piece of a line crossing a concave polygon", {
   expect_true(all(np[yy > 10.01] == 2L))       # both arms of the U
   expect_true(all(np[yy < 9.99] == 1L))        # the base, one piece
 })
+
+test_that("the map subtitle counts polygons and classes separately", {
+  skip_if_not_installed("ggplot2")
+  res  <- ex_res()
+  site <- res$traps$Name[1]
+  st <- tryCatch(map_composition(res, site)$labels$subtitle,
+                 error = function(e) NULL)
+  if (is.null(st)) skip("ggplot labels cannot be inspected in this ggplot2 version")
+  np <- res$qc$n_polygons[res$qc$Ovitrap_ID == site & res$qc$radius_m == 50]
+  nc <- sum(res$long$Ovitrap_ID == site & res$long$radius_m == 50 &
+              res$long$area_m2 > 0)
+  # 1.3.1 printed the number of classes as "classified polygons"
+  expect_gt(np, nc)
+  expect_match(st, sprintf("^%d polygons in %d classes", np, nc))
+})

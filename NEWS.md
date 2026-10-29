@@ -1,4 +1,4 @@
-# bufferscape 1.3.1
+# bufferscape 1.3.2
 
 ## The north arrow pointed south
 
@@ -37,6 +37,9 @@ first site of each file. The workbook was always correct.
 * The closing line of the batch log printed the workbook path where the number
   of files read belonged, and "traps processed" counted one row per trap and
   radius.
+* Map subtitles read "18 classified polygons" where 18 was the number of
+  classes present. They now give both counts: "37 polygons in 18 classes" for
+  the bundled example site.
 * `plot_site_composition()` reported "of 29 categories" whatever dictionary was
   in use; it now counts the dictionary actually used.
 * `citation("bufferscape")` takes the version from `DESCRIPTION`, so it can no
